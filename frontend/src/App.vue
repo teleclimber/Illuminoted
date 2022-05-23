@@ -1,47 +1,15 @@
 <script setup lang="ts">
-import {ref, Ref, onMounted, computed} from 'vue';
-import NoteUI from './components/Note.vue';
+import {notes_graph} from './main';
+
+import NoteStack from './components/NoteStack.vue';
 import ThreadUI from './components/Thread.vue';
-
-import {NotesGraph} from './models/graph';
-import type {Note, NoteData, Thread} from './models/graph';
-
-export interface UINote {
-  note: Note,
-  thread: Thread,
-  prev: UINote|undefined,
-  next: UINote|undefined, 
-}
-
-const notes_graph = new NotesGraph;
-
-onMounted( async () => {
-  notes_graph.getThreads();
-  notes_graph.getLatestNotes();
-});
-
-
 
 async function threadClicked(thread:number) {
   notes_graph.setThread(thread);
 }
 
 
-const ui_notes = computed( () => {
-  let prev :UINote|undefined;
-  return notes_graph.notes.value.map( n => {
-    
-    const ui_note :UINote = {
-      note:n,
-      thread: notes_graph.mustGetThread(n.thread),
-      prev: prev,
-      next: undefined, 
-    };
-    if( prev ) prev.next = ui_note;
-    prev = ui_note;
-    return ui_note;
-  });
-});
+
 
 
 
@@ -73,14 +41,14 @@ const ui_notes = computed( () => {
 </script>
 
 <template>
+  <header class="sticky top-0 z-50 bg-gray-100">
   
-  <div class="px-4">
-    <h2 class="text-xl font-bold">Threads: ({{ notes_graph.threads.value.length }})</h2>
-    <ThreadUI :thread="thread" v-for="thread in notes_graph.threads.value" v-on:thread-clicked="threadClicked"></ThreadUI>
-  </div>
-
-  <div class="px-4">
-    <h2 class="text-xl font-bold">Notes:</h2>
-    <NoteUI :ui_note="note" v-for="note in ui_notes"></NoteUI>
-  </div>
+    <div class="px-4">
+      <h2 class="text-xl font-bold">Threads: ({{ notes_graph.threads.value.length }})</h2>
+      <ThreadUI :thread="thread" v-for="thread in notes_graph.threads.value" v-on:thread-clicked="threadClicked"></ThreadUI>
+    </div>
+  </header>
+  
+  <NoteStack></NoteStack>
+      
 </template>

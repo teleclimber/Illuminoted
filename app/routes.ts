@@ -1,7 +1,7 @@
 import {RoutesBuilder, AuthAllow} from './deps.ts';
 
 import {getNote, postNote, patchNote} from './handlers/notes.ts';
-import {getLatestNotes, getThreads} from './handlers/graph.ts';
+import {getNotes, getThreads} from './handlers/graph.ts';
 import {getCurrentUser} from './handlers/user.ts';
 
 export default function createRoutes() {
@@ -12,7 +12,7 @@ export default function createRoutes() {
 
 	// notes items CRUD:
 	//r.add("get", "/api/notes/:id", authorizedOnly, getNote);
-	r.add("get", "/api/latest/:thread", authorizedOnly, getLatestNotes);
+	r.add("get", "/api/notes/:thread", authorizedOnly, getNotes);
 	r.add("get", "/api/threads/:root", authorizedOnly, getThreads);
 	r.add("post", "/api/notes", authorizedOnly, postNote);
 	//r.add("patch", "/api/notes/:id", authorizedOnly, patchNote);

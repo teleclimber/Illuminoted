@@ -1,13 +1,14 @@
 <script setup lang="ts">
-	import {computed} from 'vue';
-	import type {UINote} from '../App.vue';
+	import {computed, toRefs} from 'vue';
+	import type {UINote} from './NoteStack.vue';
 	const props = defineProps<{
 		ui_note: UINote
 	}>();
-	const note = computed( () => props.ui_note.note );
-	const thread = computed( () => props.ui_note.thread );
-	const prev = computed( () => props.ui_note.prev );
-	const next = computed( () => props.ui_note.next );
+	const {ui_note} = toRefs(props);
+	const note = computed( () => ui_note.value.note );
+	const thread = computed( () => ui_note.value.thread );
+	const prev = computed( () => ui_note.value.prev );
+	const next = computed( () => ui_note.value.next );
 
 	const show_date = computed( () => {
 		return !prev.value || prev.value.note.created.toLocaleDateString() != note.value.created.toLocaleDateString();
@@ -40,6 +41,7 @@
 </script>
 
 <template>
+	<div>
 		<div v-if="show_date" class="font-bold ml-28">
 			<div class="border-amber-700 pl-1 pt-2" :class="{'border-l-2':show_thread}">
 				{{note.created.toLocaleDateString()}}
@@ -70,5 +72,5 @@
 				</a>
 			</div>
 		</div>
-
+	</div>
 </template>

@@ -1,5 +1,5 @@
-import {ref} from 'vue';
-import type {Ref} from 'vue';
+import {computed, ref} from 'vue';
+import type {Ref, ComputedRef} from 'vue';
 
 
 export interface Relation {
@@ -41,44 +41,60 @@ export class NotesGraph {
 
 	// Need to stash threads and notes
 	threads :Ref<Thread[]> = ref([]); 
-	notes :Ref<Note[]> = ref([]);
+	notes :Ref<Map<number,Note>> = ref(new Map);
 
 	setContext(id:number) {
 		this.context_id.value = id;
+		this.getMoreNotes();
 	}
 	setThread(id:number) {
 		this.thread_id.value = id;
-		this.getLatestNotes();
 	}
 
-	async getLatestNotes() {
-		const resp = await fetch('/api/latest/'+this.thread_id.value);
+	async getMoreNotes() {
+
+		const resp = await fetch('/api/notes/'+this.context_id.value+'?'
+			+ new URLSearchParams({
+				date: this.sorted_notes.value.length === 0 ? '' : this.sorted_notes.value[0].created.toISOString()
+			}));
 		if( !resp.ok ) throw new Error("fetch not OK");
 		const data = <{relations: any[], notes: any[]}>await resp.json();
 		if( !Array.isArray(data.relations) ) throw new Error("expected an array of relations");
 		const relations = data.relations.map( (r:any) => relationFromRaw(r) );
 		if( !Array.isArray(data.notes) ) throw new Error("expected array of notes");
-		const notes = data.notes.map( (n:any) => noteFromRaw(n) );
+		const new_note_datas = data.notes.map( (n:any) => noteFromRaw(n) );
 	
-		const notesMap :Map<number, Note> = new Map;
-		notes.forEach( n => {
+		new_note_datas.forEach( n => {
 			const n2 = <Note>n;
 			n2.relations = [];
-			notesMap.set(n.id, n2);
+			this.notes.value.set(n.id, n2);
 		});
 		relations.forEach( r => {
-			let note = notesMap.get(r.source);
+			let note = this.notes.value.get(r.source);
 			if( note ) note.relations.push(r);
-			note = notesMap.get(r.target);
+			note = this.notes.value.get(r.target);
 			if( note ) note.relations.push(r);
 		});
+
+
 	
-		const ret = <Note[]> notes;
-		this.notes.value = ret;	// later merge and deduplicate, etc...?
-		this.notes.value.sort( (a, b) => a.created < b.created ? -1 : 1);
+		// const new_notes = <Note[]> new_note_datas;
+		// new_notes.sort( (a, b) => a.created < b.created ? -1 : 1);
+
+		// if( this.notes.value.length !== 0 ) {
+		// 	const first = this.notes.value[0];
+		// 	while( new_notes.length !== 0 && new_notes[new_notes.length-1].created > )
+		// }
+
+		// this.notes.value = ret;	// later merge and deduplicate, etc...?
+		// this.notes.value.sort( (a, b) => a.created < b.created ? -1 : 1);
 	
-		console.log("notes with relations: ", this.notes);
+		// console.log("notes with relations: ", this.notes);
 	}
+
+	sorted_notes :ComputedRef<Note[]> = computed( () => {
+		return Array.from(this.notes.value, ([_, t]) => t).sort( (a, b) => a.created < b.created ? -1 : 1);
+	});
 
 	async getThreads() {
 		const resp = await fetch('/api/threads/'+this.context_id.value);

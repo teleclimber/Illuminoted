@@ -24,11 +24,17 @@ import { Context } from 'https://deno.land/x/dropserver_app@v0.1.1/approutes.ts'
 import {getNotesByDate, getThreads as dbGetThreads} from '../db.ts';
 import type {DBNote, DBRelation} from '../db.ts';
 
-export async function getLatestNotes(ctx:Context) {
+export async function getNotes(ctx:Context) {
 	const thread = ctx.params.thread ? parseInt(ctx.params.thread+'') : 1;
+	// get date, limit, and direction from query string
+	const date_str = ctx.url.searchParams.get("date");
+	const date = date_str ? new Date(date_str) : new Date;	// maybe take a future date to capture everything.
+	let dir = "backwards"; // default for now
+	let limit = 100;	// for now.
+
 	let ret:{notes:DBNote[], relations: DBRelation[]};
 	try {
-		ret = await getNotesByDate({thread, from: new Date, backwards: true, limit: 50});
+		ret = await getNotesByDate({thread, from: date, backwards: true, limit});
 	} catch(e) {
 		ctx.req.respond({status:500, body:e});
 		throw e;
