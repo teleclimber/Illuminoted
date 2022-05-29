@@ -96,6 +96,24 @@ export class NotesGraph {
 		return Array.from(this.notes.value, ([_, t]) => t).sort( (a, b) => a.created < b.created ? -1 : 1);
 	});
 
+	getNote(id:number) :Note|undefined {
+		return this.notes.value.get(id);
+	}
+	mustGetNote(id:number) :Note {
+		const n = this.getNote(id);
+		if( !n ) throw new Error("could not find note "+id);
+		return n;
+	}
+
+	async createNote(ref_note_id:number, relation:"follows"|"thread-out", contents:string, created:Date) {
+		// create a note by sending data to server
+		// Get back note id, thread, etcc., and update local data
+		// Also may need to update thread
+		// 		
+
+	}
+
+	// Threads..
 	async getThreads() {
 		const resp = await fetch('/api/threads/'+this.context_id.value);
 		if( !resp.ok ) throw new Error("fetch not OK");

@@ -3,6 +3,7 @@ import {notes_graph} from './main';
 
 import NoteStack from './components/NoteStack.vue';
 import ThreadUI from './components/Thread.vue';
+import NoteEditor from './components/NoteEditor.vue';
 
 async function threadClicked(thread:number) {
   notes_graph.setThread(thread);
@@ -50,5 +51,7 @@ async function threadClicked(thread:number) {
   </header>
   
   <NoteStack></NoteStack>
+
+  <NoteEditor class="sticky bottom-0 z-50"></NoteEditor>
       
 </template>

@@ -2,7 +2,7 @@
 import {computed, watch, ref, onMounted, onUpdated, nextTick} from 'vue';
 import type {Ref} from 'vue';
 
-import {notes_graph} from '../main';
+import {notes_graph, note_editor} from '../main';
 import type {Note, Thread} from '../models/graph';
 
 import NoteUI from './Note.vue';
@@ -88,7 +88,7 @@ onUpdated( () => {
 		</a>
 		<div ref="buffer_elem" :style="{height:buffer_height}"></div>
 		<div ref="notes_measurer">
-			<NoteUI :ui_note="ui_note" v-for="ui_note in ui_notes"></NoteUI>
+			<NoteUI v-for="ui_note in ui_notes" :ui_note="ui_note" :edit_rel="note_editor.getRel(ui_note.note.id)"></NoteUI>
 		</div>
     </div>
 </template>
