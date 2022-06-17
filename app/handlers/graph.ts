@@ -22,7 +22,7 @@
 
 import { Context } from 'https://deno.land/x/dropserver_app@v0.1.1/approutes.ts';
 import {getNotesByDate, getThreads as dbGetThreads} from '../db.ts';
-import type {DBNote, DBRelation} from '../db.ts';
+import type {DBNote, DBThread, DBRelation} from '../db.ts';
 
 export async function getNotes(ctx:Context) {
 	const thread = ctx.params.thread ? parseInt(ctx.params.thread+'') : 1;
@@ -52,7 +52,7 @@ export async function getNotes(ctx:Context) {
 export async function getThreads(ctx:Context) {
 	if( ctx.params.root === undefined ) throw new Error("no root parameter");
 	const root = parseInt(ctx.params.root+'');
-	let ret :{root: DBNote,leaf: DBNote}[];
+	let ret :DBThread[];
 	try {
 		ret = await dbGetThreads({root})
 	} catch(e) {

@@ -28,20 +28,19 @@
 
 	// it's possible that instead of "prev" "next" links, we have one control that removes the other threads?
 	// This could tie in with thread navigator / selector, where I imagine we can click on an "eye" button to show/hide
-	const follows_id = computed( () => {
-		const f = note.value.relations.find( r => r.label === "follows" && r.source == note.value.id );
-		return f?.target;
+	const is_thread_root = computed( () => {
+		return note.value.id == note.value.thread;
 	});
 	const show_prev_control = computed( () => {
-		return !!follows_id.value && follows_id.value != prev.value?.note.id;
+		// show if previous shwon note is different thread.
+		// Exception: if this note is the root of the thread.
+		// (in which case we should make that visually clear)
+		return !is_thread_root.value && (!prev.value || prev.value.note.thread != note.value.thread);
 	});
-	const follower_id = computed( () => {
-		const f = note.value.relations.find( r => r.label === "follows" && r.target == note.value.id );
-		return f?.source;
+	const next_is_follower = computed( () => {
+		return next.value && next.value.note.thread === note.value.thread;
 	});
-	const show_next_control = computed( () => {
-		return !!follower_id.value && (!next.value || follower_id.value != next.value?.note.id);
-	});
+
 </script>
 
 <template>
@@ -51,9 +50,12 @@
 				{{note.created.toLocaleDateString()}}
 			</div>
 		</div> 
+		<div v-if="is_thread_root" class="text-sm pl-28 pt-2">
+			Thread root
+		</div>
 		<div v-if="show_thread" class="text-sm pl-28 pt-2 flex">
 			<div class="italic text-amber-800 max-w-prose whitespace-nowrap overflow-clip">
-				{{thread.root.contents}}
+				{{thread.contents}}
 			</div>
 			<a href="#" v-if="show_prev_control" class="ml-2 flex items-center rounded bg-slate-100 px-1">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -68,7 +70,7 @@
 				<div class="py-1 border-l-2 pl-1 border-amber-700" >
 					<p class="max-w-prose">
 						{{note.contents}}
-						<a href="#" v-if="show_next_control" class="ml-2 inline-flex items-center rounded bg-slate-100 px-1">
+						<a href="#" v-if="!next_is_follower" class="ml-2 inline-flex items-center rounded bg-slate-100 px-1">
 							<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
 								<path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd" />
 							</svg>
@@ -77,7 +79,7 @@
 				</div>
 			</div>
 			<div class="w-52 py-2 grid grid-cols-4">
-				<a href="#" v-if="!follower_id" @click.stop.prevent="note_editor.follow(note.id)" class="ml-2 flex items-center rounded bg-slate-300 px-1">
+				<a href="#" v-if="true" @click.stop.prevent="note_editor.appendToThread(note.thread)" class="ml-2 flex items-center rounded bg-slate-300 px-1">
 					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
 						<path fill-rule="evenodd" d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 017 7v2a1 1 0 11-2 0v-2a5 5 0 00-5-5H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
 					</svg>

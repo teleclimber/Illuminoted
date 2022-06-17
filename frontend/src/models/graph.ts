@@ -1,4 +1,4 @@
-import {computed, ref} from 'vue';
+import {computed, ref, shallowRef} from 'vue';
 import type {Ref, ComputedRef} from 'vue';
 
 
@@ -12,7 +12,6 @@ export interface Relation {
 export interface NoteData {
 	id: number,
 	thread: number,
-	depth: number,
 	contents: string,
 	created: Date
 }
@@ -30,8 +29,8 @@ export type Thread = {
 	thread: number,
 	parent: number,
 	depth: number,
-	root: NoteData,
-	leaf: NoteData|undefined
+	contents: string,
+	created: Date
 }
 
 export class NotesGraph {
@@ -40,8 +39,8 @@ export class NotesGraph {
 	thread_id = ref(1);
 
 	// Need to stash threads and notes
-	threads :Ref<Thread[]> = ref([]); 
-	notes :Ref<Map<number,Note>> = ref(new Map);
+	threads :Ref<Thread[]> = shallowRef([]); 
+	notes :Ref<Map<number,Note>> = shallowRef(new Map);
 
 	setContext(id:number) {
 		this.context_id.value = id;
@@ -64,10 +63,11 @@ export class NotesGraph {
 		if( !Array.isArray(data.notes) ) throw new Error("expected array of notes");
 		const new_note_datas = data.notes.map( (n:any) => noteFromRaw(n) );
 	
+		const temp_notes = new Map(this.notes.value);
 		new_note_datas.forEach( n => {
 			const n2 = <Note>n;
 			n2.relations = [];
-			this.notes.value.set(n.id, n2);
+			temp_notes.set(n.id, n2);
 		});
 		relations.forEach( r => {
 			let note = this.notes.value.get(r.source);
@@ -76,7 +76,7 @@ export class NotesGraph {
 			if( note ) note.relations.push(r);
 		});
 
-
+		this.notes.value = temp_notes;
 	
 		// const new_notes = <Note[]> new_note_datas;
 		// new_notes.sort( (a, b) => a.created < b.created ? -1 : 1);
@@ -109,7 +109,52 @@ export class NotesGraph {
 		// create a note by sending data to server
 		// Get back note id, thread, etcc., and update local data
 		// Also may need to update thread
-		// 		
+		// 	
+		
+		const rawResponse = await fetch('/api/notes', {
+			method: 'POST',
+			headers: {
+				'Accept': 'application/json',
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				ref_note_id: ref_note_id,
+				relation: relation,
+				contents: contents,
+				created: created,
+				targets: []	// todo later
+			})
+		});
+
+		const resp = await rawResponse.json();
+		const new_id = Number(resp.id);
+		const new_note:Note = {
+			id: new_id,
+			thread: ref_note_id,	// assumes follows
+			contents,
+			created,
+			relations: []
+		}
+
+		if( relation === "thread-out" ) {
+			new_note.thread = new_note.id;
+			const ref_note = this.mustGetNote(ref_note_id);
+			const parent_thread = this.mustGetThread(ref_note.thread);
+			const new_thread :Thread = {
+				thread: new_id,
+				contents,
+				created,
+				depth: parent_thread.depth +1,
+				parent: ref_note_id
+			} 
+			this.threads.value = this.threads.value.concat(new_thread);
+
+			// TODO need to push relation too
+		}
+
+		const temp_notes = new Map(this.notes.value);
+		temp_notes.set(new_id, new_note);
+		this.notes.value = temp_notes;
 
 	}
 
@@ -123,8 +168,8 @@ export class NotesGraph {
 				thread: parseInt(raw.thread),
 				parent: parseInt(raw.parent),
 				depth: parseInt(raw.depth),
-				root: noteFromRaw(raw.root),
-				leaf: raw.leaf ? noteFromRaw(raw.leaf) : undefined
+				contents: raw.contents+'',
+				created: new Date(raw.created)
 			}
 		});
 	}
@@ -151,7 +196,6 @@ function noteFromRaw(n:any) :NoteData {
 	return {
 		id: parseInt(n.id),
 		thread: parseInt(n.thread),
-		depth: parseInt(n.depth),
 		created: new Date(n.created),
 		contents: n.contents+''
 	};

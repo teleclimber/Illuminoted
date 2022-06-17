@@ -24,10 +24,26 @@ export function getDBFile() :string {
 
 // These should take a transaction or a db
 // or somehow support transactional querying across multipole functions
-export function createNote(note :{contents :string, created :Date}) :number {
+export function createNote(note :{contents :string, thread :number, created :Date}) :number {
 	const db = getDB();
-	db.query('INSERT INTO notes ("contents", "created") VALUES (:contents, :created)', note);
+	db.query('INSERT INTO notes ("contents", "thread", "created") VALUES (:contents, :thread, :created)', note);
 	return db.lastInsertRowId;
+}
+
+export function createThread(note :{contents :string, created :Date, parent :number}) :number {
+	const db = getDB();
+	let id :number = 0;
+	db.transaction( () => {
+		db.query('INSERT INTO notes ("contents", "thread", "created") VALUES (:contents, :thread, :created)', 
+			{contents: note.contents, thread: 1, created: note.created});
+		id = db.lastInsertRowId;
+		// set the thread to note's id:
+		db.query('UPDATE notes SET thread = :id WHERE id = :id', {id});
+		// create the relation
+		createRelation({source:id, target:note.parent, label:"thread-out", created: note.created});
+	});
+
+	return id;
 }
 
 export function createRelation(relation:{source :number, target :number, label: string, created :Date} ) {
@@ -51,7 +67,6 @@ export function createRelation(relation:{source :number, target :number, label: 
 export type DBNote = {
 	id: number,
 	thread: number,
-	depth: number,
 	created: Date,
 	contents: string
 }
@@ -69,20 +84,21 @@ export type DBRelation = {
 // 									WHERE created >= :from ORDER BY created ASC  LIMIT :limit`;
 
 const sql_notes_date_base = `WITH RECURSIVE 
-desc_threads(thread, parent, depth) AS (
-	SELECT :thread, NULL, 0 
+desc_threads(thread, parent) AS (
+	SELECT :thread, NULL
 	UNION ALL
-	SELECT  relations.source, desc_threads.thread, depth +1 
+	SELECT  relations.source, desc_threads.thread 
 		FROM desc_threads
-		JOIN note_thread ON desc_threads.thread = note_thread.thread
-		JOIN relations ON note_thread.note = relations.target
+		JOIN notes ON desc_threads.thread = notes.thread
+		JOIN relations ON notes.id = relations.target
 		WHERE relations.label = 'thread-out'
 		)
-SELECT notes.id, desc_threads.thread, desc_threads.depth, created, contents FROM desc_threads 
-JOIN note_thread ON desc_threads.thread = note_thread.thread
-JOIN notes ON notes.id = note_thread.note `;
+SELECT notes.id, desc_threads.thread, created, contents FROM desc_threads 
+JOIN notes ON desc_threads.thread = notes.thread `;
+
 const sql_notes_date_backwards = sql_notes_date_base 
 	+ `WHERE created <= :from ORDER BY created DESC LIMIT :limit`;
+
 const sql_notes_date_forwards = sql_notes_date_base 
 	+ `WHERE created >= :from ORDER BY created ASC  LIMIT :limit`;
 
@@ -213,55 +229,38 @@ export type DBThread = {
 	thread: number,
 	parent: number,
 	depth: number,
-	root: DBNote,
-	leaf: DBNote
+	contents: string,
+	created: Date
 }
 
 export function getThreads(params :{root:number}) :DBThread[] {
 	const db = getDB();
 	const sel = `WITH RECURSIVE 
-			desc_notes(id, thread, parent, depth, is_leaf, label) AS (
-				SELECT :root, :root, NULL, 0, FALSE, 'thread-out'
-				UNION 
-				SELECT relations.source, 
-					CASE WHEN relations.label == 'thread-out' THEN relations.source ELSE thread END AS thread,
-					CASE WHEN relations.label == 'thread-out' THEN thread ELSE NULL END AS parent,
-					CASE WHEN relations.label == 'thread-out' THEN depth+1 ELSE depth END AS depth,
-					CASE WHEN follower.source IS NULL THEN TRUE ELSE FALSE END AS is_leaf,
-					relations.label 
-				FROM relations
-				JOIN desc_notes ON relations.target = id
-				LEFT OUTER JOIN relations AS follower ON relations.source = follower.target
-				WHERE relations.label = 'follows' OR relations.label = 'thread-out'
+	desc_threads(thread, parent, depth) AS (
+		SELECT :root, NULL, 0 
+		UNION ALL
+		SELECT  relations.source, desc_threads.thread, depth +1 
+			FROM desc_threads
+			JOIN notes ON desc_threads.thread = notes.thread
+			JOIN relations ON notes.id = relations.target
+			WHERE relations.label = 'thread-out'
 			)
-		SELECT desc_notes.id, desc_notes.thread, desc_notes.parent, desc_notes.depth, is_leaf, contents, created FROM desc_notes JOIN notes ON notes.id = desc_notes.id
-			WHERE label = 'thread-out' OR is_leaf = TRUE;`;
+	SELECT desc_threads.thread, desc_threads.parent, desc_threads.depth,
+	root.contents, root.created 
+	FROM desc_threads
+	JOIN notes AS root ON root.id = desc_threads.thread`
+
 	const thread_notes = <any> db.queryEntries( sel, params );
 	
-	const ret :DBThread[] = [];
-	thread_notes.forEach( (tn:any) => {
-		const thread_id = tn.thread;
-		let found = ret.find( r => r.thread == thread_id);
-		
-		if( !found ) {
-			//@ts-ignore
-			found = {
-				thread: thread_id,
-				parent: tn.parent,
-				depth: tn.depth
-			};
-			//@ts-ignore
-			ret.push(found);
-		}
-		const note:DBNote = {
-			id: tn.id,
+	const ret :DBThread[] = thread_notes.map( (tn:any) => {
+		const ret :DBThread = {
 			thread: tn.thread,
 			depth: tn.depth,
+			parent: tn.parent,
 			contents: tn.contents,
 			created: tn.created
-		};
-		if( tn.is_leaf ) found!.leaf = note;
-		else found!.root = note;
+		}
+		return ret;
 	});
 
 	return ret;

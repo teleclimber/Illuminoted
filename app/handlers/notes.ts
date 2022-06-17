@@ -1,5 +1,5 @@
 import type {ServerRequest, Response, Context} from "../deps.ts";
-import {createNote, createRelation} from '../db.ts';
+import {createNote, createThread, createRelation} from '../db.ts';
 
 import {readAll} from 'https://deno.land/std@0.138.0/streams/conversion.ts';
 
@@ -16,6 +16,8 @@ export function getNote(ctx:Context) {
 }
 
 type PostData = {
+	ref_note_id: number,
+	relation: "follows"|"thread-out",
 	contents: string,
 	created: Date,
 	targets: {target: number, label: string}[]
@@ -35,7 +37,17 @@ export async function postNote(ctx:Context) {
 	// create note
 	// then add edges.
 	// should take place as a transction ideally
-	const id = createNote({contents:json.contents, created:json.created});
+	let id : number;
+	if( json.relation === "follows" ) {
+		id = createNote({contents:json.contents, thread:json.ref_note_id, created:json.created});
+	}
+	else if( json.relation === "thread-out" ) {
+		id = createThread({contents:json.contents, created:json.created, parent: json.ref_note_id});
+		// Here we'd like to return the thread data, which should include depth.
+		// However we don't necessarily have the context, so, where do you start the tree?
+		// Plus I don't even know if we can select just one thread? Or is our query going to return all threads? Not great.
+	}
+	else throw new Error("what is this relation? "+json.relation);
 
 	json.targets.forEach( t => {
 		createRelation({source:id, target:t.target, label:t.label, created:json.created});

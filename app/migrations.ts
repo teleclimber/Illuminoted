@@ -13,13 +13,15 @@ export default function createMigrations() {
 		console.log("creating tables");
 		db.query(`CREATE TABLE "notes" (
 				"id" INTEGER PRIMARY KEY ASC,
+				"thread" INTEGER NOT NULL,
 				"contents" TEXT,
 				"created" DATETIME
 			)`);
+		db.query(`CREATE INDEX notes_thread ON notes (thread)`);
 		db.query(`CREATE INDEX notes_created ON notes (created)`);
 
 		// maybe create the first node as a root node?
-		db.query('INSERT INTO notes ("contents", "created") VALUES (:contents, :created)', {contents:"Root node", created:new Date});
+		db.query('INSERT INTO notes ("thread", "contents", "created") VALUES (1, :contents, :created)', {contents:"Root node", created:new Date});
 
 		db.query(`CREATE TABLE "relations" (
 			"source" INTEGER,
@@ -32,23 +34,6 @@ export default function createMigrations() {
 		)`);
 		db.query(`CREATE INDEX relations_source ON relations(source)`);
 		db.query(`CREATE INDEX relations_target ON relations(target)`);
-
-		/* 
-
-		CREATE TABLE "note_thread" (
-			"note" INTEGER NOT NULL UNIQUE,
-			"thread" INTEGER,
-			FOREIGN KEY(note) REFERENCES notes(id),
-			FOREIGN KEY(thread) REFERENCES notes(id)
-		)
-
-		CREATE TABLE "thread_tree" (
-			"thread" INTEGER NOT NULL UNIQUE,
-			"parent" INTEGER,
-			FOREIGN KEY(thread) REFERENCES notes(id),
-			FOREIGN KEY(parent) REFERENCES notes(id)
-		)
-		*/
 	
 		db.close();
 	});
