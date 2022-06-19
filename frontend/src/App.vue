@@ -5,14 +5,6 @@ import NoteStack from './components/NoteStack.vue';
 import ThreadUI from './components/Thread.vue';
 import NoteEditor from './components/NoteEditor.vue';
 
-async function threadClicked(thread:number) {
-  notes_graph.setThread(thread);
-}
-
-
-
-
-
 
 // Some UI use cases:
 // - authoring
@@ -44,9 +36,8 @@ async function threadClicked(thread:number) {
 <template>
   <header class="sticky top-0 z-50 bg-gray-100">
   
-    <div class="px-4">
-      <h2 class="text-xl font-bold">Threads: ({{ notes_graph.threads.value.length }})</h2>
-      <ThreadUI :thread="thread" v-for="thread in notes_graph.threads.value" v-on:thread-clicked="threadClicked"></ThreadUI>
+    <div class="px-2">
+      <ThreadUI v-if="notes_graph.context_thread.value" :thread="notes_graph.context_thread.value" :is_root="true"></ThreadUI>
     </div>
   </header>
   

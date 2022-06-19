@@ -26,11 +26,11 @@ export interface Note extends NoteData {
 }
 
 export type Thread = {
-	thread: number,
-	parent: number,
-	depth: number,
+	id: number,
+	parent: number|undefined,
 	contents: string,
-	created: Date
+	created: Date,
+	children: Thread[]
 }
 
 export class NotesGraph {
@@ -39,11 +39,19 @@ export class NotesGraph {
 	thread_id = ref(1);
 
 	// Need to stash threads and notes
-	threads :Ref<Thread[]> = shallowRef([]); 
+	threads :Ref<Map<number,Thread>> = shallowRef(new Map); 
 	notes :Ref<Map<number,Note>> = shallowRef(new Map);
+
+	context_thread = computed( () => {
+		return this.getThread(this.context_id.value);
+	});
 
 	setContext(id:number) {
 		this.context_id.value = id;
+		// this should reset notes and threads!
+		this.threads.value = new Map;
+		this.notes.value = new Map;
+		this.getThreads();
 		this.getMoreNotes();
 	}
 	setThread(id:number) {
@@ -51,6 +59,7 @@ export class NotesGraph {
 	}
 
 	async getMoreNotes() {
+		console.log("getting more notes with context "+this.context_id.value);
 
 		const resp = await fetch('/api/notes/'+this.context_id.value+'?'
 			+ new URLSearchParams({
@@ -141,13 +150,16 @@ export class NotesGraph {
 			const ref_note = this.mustGetNote(ref_note_id);
 			const parent_thread = this.mustGetThread(ref_note.thread);
 			const new_thread :Thread = {
-				thread: new_id,
+				id: new_id,
 				contents,
 				created,
-				depth: parent_thread.depth +1,
-				parent: ref_note_id
-			} 
-			this.threads.value = this.threads.value.concat(new_thread);
+				parent: parent_thread.id,
+				children: []
+			}
+			parent_thread.children.push(new_thread);
+			const temp_threads = new Map(this.threads.value);
+			temp_threads.set(new_id, new_thread);
+			this.threads.value = temp_threads;
 
 			// TODO need to push relation too
 		}
@@ -163,19 +175,31 @@ export class NotesGraph {
 		const resp = await fetch('/api/threads/'+this.context_id.value);
 		if( !resp.ok ) throw new Error("fetch not OK");
 		const data = <any[]>await resp.json();
-		this.threads.value = data.map( raw => {
-			return {
-				thread: parseInt(raw.thread),
-				parent: parseInt(raw.parent),
-				depth: parseInt(raw.depth),
+		const temp_threads :Map<number,Thread> = new Map;
+		data.forEach( raw => {
+			const id = parseInt(raw.thread);
+			temp_threads.set(id, {
+				id,
 				contents: raw.contents+'',
-				created: new Date(raw.created)
-			}
+				created: new Date(raw.created),
+				parent: raw.parent,
+				children: []
+			});
 		});
+
+		temp_threads.forEach( t => {
+			if(!t.parent) return;
+			const p = temp_threads.get(t.parent);
+			p?.children.push(t);
+		});
+
+		console.log(temp_threads)
+
+		this.threads.value = temp_threads;
 	}
 
 	getThread(id:number) :Thread|undefined {
-		return this.threads.value.find( t => t.thread == id );
+		return this.threads.value.get( id );
 	}
 	mustGetThread(id:number) :Thread {
 		const t = this.getThread(id);

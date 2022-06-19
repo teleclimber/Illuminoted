@@ -9,7 +9,6 @@ import NoteUI from './Note.vue';
 
 export interface UINote {
   note: Note,
-  thread: Thread,
   prev: UINote|undefined,
   next: UINote|undefined, 
 }
@@ -19,7 +18,6 @@ const ui_notes = computed( () => {
 	return notes_graph.sorted_notes.value.map( n => {
 		const ui_note :UINote = {
 			note:n,
-			thread: notes_graph.mustGetThread(n.thread),
 			prev: prev,
 			next: undefined, 
 		};
@@ -27,11 +25,6 @@ const ui_notes = computed( () => {
 		prev = ui_note;
 		return ui_note;
 	});
-});
-
-onMounted( async () => {
-	notes_graph.getThreads();
-	notes_graph.getMoreNotes();
 });
 
 let loading = false;
@@ -88,7 +81,7 @@ onUpdated( () => {
 		</a>
 		<div ref="buffer_elem" :style="{height:buffer_height}"></div>
 		<div ref="notes_measurer">
-			<NoteUI v-for="ui_note in ui_notes" :ui_note="ui_note" :edit_rel="note_editor.getRel(ui_note.note.id)"></NoteUI>
+			<NoteUI v-for="ui_note in ui_notes" :ui_note="ui_note" :edit_rel="note_editor.getRel(ui_note.note.id)" :key="ui_note.note.id"></NoteUI>
 		</div>
     </div>
 </template>
