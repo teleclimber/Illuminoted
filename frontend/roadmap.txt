@@ -1,0 +1,18 @@
+Lots of things to do on this app. Breaking it down:
+
+Some basic things:
+
+- search: search for term, displays notes where term found
+- Thread situational awareness: click on note (or thread if shown), and see the stack: root of thread, parent, root of that thread, parent of that, etc...
+- navigate to end of thread. (instead of "reply" button). click on note or thread, and be able to go to the end of thread
+- general UI: Show Note. Given a note id: load it if necessary, display it in the correct place, and scroll to it.
+
+
+Possible features: (don't build until you have experience:)
+- "read thread" mode. Or some ability to navigate to next note in thread even if other notes are showing from other threads.
+- Thread situational awareness: in case of long run of notes in same thread, no thread info is currently visible. It should always be possible to know what thread we're looking at. 
+- note scroll / date stability. (showing / hiding the threads should return to the same place.)
+
+DONE
+//ok - Threads UI collapse and expand: show only the filtered thread when collapsed. Expand to full window height to see all, etc...
+// ok - filter by thread: in thread UI, click a "filter" button to show only that thread and its descendants

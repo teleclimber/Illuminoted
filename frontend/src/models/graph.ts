@@ -36,7 +36,7 @@ export type Thread = {
 export class NotesGraph {
 
 	context_id = ref(1);
-	thread_id = ref(1);
+	filter_thread = ref(1);
 
 	// Need to stash threads and notes
 	threads :Ref<Map<number,Thread>> = shallowRef(new Map); 
@@ -48,20 +48,17 @@ export class NotesGraph {
 
 	setContext(id:number) {
 		this.context_id.value = id;
-		// this should reset notes and threads!
 		this.threads.value = new Map;
-		this.notes.value = new Map;
 		this.getThreads();
-		this.getMoreNotes();
 	}
-	setThread(id:number) {
-		this.thread_id.value = id;
+	setFilterThread(id:number) {
+		this.filter_thread.value = id;
+		this.notes.value = new Map;
+		this.getMoreNotes();
 	}
 
 	async getMoreNotes() {
-		console.log("getting more notes with context "+this.context_id.value);
-
-		const resp = await fetch('/api/notes/'+this.context_id.value+'?'
+		const resp = await fetch('/api/notes/'+this.filter_thread.value+'?'
 			+ new URLSearchParams({
 				date: this.sorted_notes.value.length === 0 ? '' : this.sorted_notes.value[0].created.toISOString()
 			}));
