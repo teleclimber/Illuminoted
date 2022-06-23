@@ -26,13 +26,14 @@ export default class PageControl {
 
 	// we sould probably use native keyboard shortcuts to do note selection?
 	// although that won't work with touch-only devices.
-	#selected_note_id :Ref<number|undefined> = ref();
+	selected_note_id :Ref<number|undefined> = ref();
 
 	selectNote(note_id:number) {
-		this.#selected_note_id.value = note_id;
+		if( this.selected_note_id.value === note_id ) this.selected_note_id.value = undefined;
+		else this.selected_note_id.value = note_id;
 	}
 	deselectNote() {
-		this.#selected_note_id.value = undefined;
+		this.selected_note_id.value = undefined;
 	}
 
 }

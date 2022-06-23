@@ -76,9 +76,9 @@ export class NotesGraph {
 			temp_notes.set(n.id, n2);
 		});
 		relations.forEach( r => {
-			let note = this.notes.value.get(r.source);
+			let note = temp_notes.get(r.source);
 			if( note ) note.relations.push(r);
-			note = this.notes.value.get(r.target);
+			note = temp_notes.get(r.target);
 			if( note ) note.relations.push(r);
 		});
 
@@ -159,6 +159,14 @@ export class NotesGraph {
 			this.threads.value = temp_threads;
 
 			// TODO need to push relation too
+			ref_note.relations.push({
+				source: new_id,
+				target: ref_note.id,
+				label: "thread-out",
+				created,
+			});
+			// TODO this requires that notes themselves be refs.
+			
 		}
 
 		const temp_notes = new Map(this.notes.value);

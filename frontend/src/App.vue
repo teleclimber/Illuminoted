@@ -4,6 +4,7 @@ import {notes_graph, page_control} from './main';
 
 import NoteStack from './components/NoteStack.vue';
 import ThreadUI from './components/Thread.vue';
+import NoteControls from './components/NoteControls.vue';
 import NoteEditor from './components/NoteEditor.vue';
 
 const show_threads = computed( () => page_control.show_threads.value );
@@ -63,6 +64,10 @@ const filter_tread = computed( () => {
 	
 	<NoteStack v-if="!show_threads"></NoteStack>
 
-	<NoteEditor v-if="!show_threads" class="sticky bottom-0 z-50"></NoteEditor>
+	<div class="sticky bottom-0 z-50">
+		<NoteControls></NoteControls>
+		<NoteEditor v-if="!show_threads"></NoteEditor>
+	</div>
+	
       
 </template>

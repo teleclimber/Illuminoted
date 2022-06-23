@@ -57,7 +57,7 @@ async function loadMoreNotes() {
 	nextTick( () => {
 		window.scrollTo({top:window.scrollY+shift}); 
 	});
-	
+
 	await notes_graph.getMoreNotes();
 }
 
@@ -81,7 +81,7 @@ onUpdated( () => {
 		</a>
 		<div ref="buffer_elem" :style="{height:buffer_height}"></div>
 		<div ref="notes_measurer">
-			<NoteUI v-for="ui_note in ui_notes" :ui_note="ui_note" :edit_rel="note_editor.getRel(ui_note.note.id)" :key="ui_note.note.id"></NoteUI>
+			<NoteUI v-for="ui_note in ui_notes" :ui_note="ui_note" :key="ui_note.note.id"></NoteUI>
 		</div>
     </div>
 </template>
