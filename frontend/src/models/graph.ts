@@ -40,7 +40,7 @@ export class NotesGraph {
 
 	// Need to stash threads and notes
 	threads :Ref<Map<number,Thread>> = shallowRef(new Map); 
-	notes :Ref<Map<number,Note>> = shallowRef(new Map);
+	notes :Ref<Map<number,Ref<Note>>> = shallowRef(new Map);
 
 	context_thread = computed( () => {
 		return this.getThread(this.context_id.value);
@@ -60,7 +60,7 @@ export class NotesGraph {
 	async getMoreNotes() {
 		const resp = await fetch('/api/notes/'+this.filter_thread.value+'?'
 			+ new URLSearchParams({
-				date: this.sorted_notes.value.length === 0 ? '' : this.sorted_notes.value[0].created.toISOString()
+				date: this.sorted_notes.value.length === 0 ? '' : this.sorted_notes.value[0].value.created.toISOString()
 			}));
 		if( !resp.ok ) throw new Error("fetch not OK");
 		const data = <{relations: any[], notes: any[]}>await resp.json();
@@ -73,13 +73,13 @@ export class NotesGraph {
 		new_note_datas.forEach( n => {
 			const n2 = <Note>n;
 			n2.relations = [];
-			temp_notes.set(n.id, n2);
+			temp_notes.set(n.id, shallowRef(n2));
 		});
 		relations.forEach( r => {
 			let note = temp_notes.get(r.source);
-			if( note ) note.relations.push(r);
+			if( note ) addRelation(note, r);
 			note = temp_notes.get(r.target);
-			if( note ) note.relations.push(r);
+			if( note ) addRelation(note, r);
 		});
 
 		this.notes.value = temp_notes;
@@ -98,14 +98,14 @@ export class NotesGraph {
 		// console.log("notes with relations: ", this.notes);
 	}
 
-	sorted_notes :ComputedRef<Note[]> = computed( () => {
-		return Array.from(this.notes.value, ([_, t]) => t).sort( (a, b) => a.created < b.created ? -1 : 1);
+	sorted_notes :ComputedRef<Ref<Note>[]> = computed( () => {
+		return Array.from(this.notes.value, ([_, t]) => t).sort( (a, b) => a.value.created < b.value.created ? -1 : 1);
 	});
 
-	getNote(id:number) :Note|undefined {
+	getNote(id:number) :Ref<Note>|undefined {
 		return this.notes.value.get(id);
 	}
-	mustGetNote(id:number) :Note {
+	mustGetNote(id:number) :Ref<Note> {
 		const n = this.getNote(id);
 		if( !n ) throw new Error("could not find note "+id);
 		return n;
@@ -145,7 +145,7 @@ export class NotesGraph {
 		if( relation === "thread-out" ) {
 			new_note.thread = new_note.id;
 			const ref_note = this.mustGetNote(ref_note_id);
-			const parent_thread = this.mustGetThread(ref_note.thread);
+			const parent_thread = this.mustGetThread(ref_note.value.thread);
 			const new_thread :Thread = {
 				id: new_id,
 				contents,
@@ -158,19 +158,18 @@ export class NotesGraph {
 			temp_threads.set(new_id, new_thread);
 			this.threads.value = temp_threads;
 
-			// TODO need to push relation too
-			ref_note.relations.push({
+			const r = {
 				source: new_id,
-				target: ref_note.id,
+				target: ref_note.value.id,
 				label: "thread-out",
 				created,
-			});
-			// TODO this requires that notes themselves be refs.
-			
+			};
+			addRelation(ref_note, r);
+			new_note.relations.push(r)
 		}
 
 		const temp_notes = new Map(this.notes.value);
-		temp_notes.set(new_id, new_note);
+		temp_notes.set(new_id, shallowRef(new_note));
 		this.notes.value = temp_notes;
 
 	}
@@ -230,6 +229,10 @@ function noteFromRaw(n:any) :NoteData {
 	};
 }
 
+function addRelation( n:Ref<Note>, r:Relation) {
+	n.value.relations.push(r);
+	n.value = Object.assign({}, n.value);
+}
 
 
 

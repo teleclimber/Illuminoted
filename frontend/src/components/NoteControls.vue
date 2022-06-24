@@ -4,7 +4,8 @@ import { page_control, notes_graph, note_editor } from '../main';
 
 const note = computed( () => {
 	if( !page_control.selected_note_id.value ) return undefined;
-	return notes_graph.getNote(page_control.selected_note_id.value);
+	const n = notes_graph.getNote(page_control.selected_note_id.value);
+	if( n ) return n.value;
 });
 
 //  controls:
@@ -21,6 +22,7 @@ const note = computed( () => {
 
 // info:
 // - thread snip (clickable) if not root OR thread parent if root
+// - thread-outs
 // - other relations
 
 const thread = computed( () => {
@@ -34,7 +36,17 @@ const parent = computed( () => {
 		return r.label === 'thread-out' && r.source === note.value?.id;
 	});
 	if( !rel ) return undefined;
-	return notes_graph.getNote(rel.target);
+	const n = notes_graph.getNote(rel.target);
+	if( n ) return n.value;
+});
+
+const thread_outs = computed( () => {
+	if( !note.value ) return [];
+	return note.value.relations.filter( (r) => {
+		return r.label === "thread-out" && r.target === note.value?.id;
+	}).map( r => {
+		return notes_graph.getNote(r.source)
+	}).filter( r => !!r );
 });
 
 function appendToThread() {
@@ -63,6 +75,10 @@ const expand_thread = ref(false);
 	<div v-if="note" class="p-2 bg-white border-t-2">
 		<div v-if="parent" class="h-6 overflow-y-hidden" :class="{'h-auto':expand_thread}" @click.stop.prevent="expand_thread = !expand_thread">Parent: {{parent.contents}}</div>
 		<div v-if="thread" class="h-6 overflow-y-hidden" :class="{'h-auto':expand_thread}" @click.stop.prevent="expand_thread = !expand_thread">Thread: {{thread.contents}}</div>
+		<div v-for="n in thread_outs" class="flex h-6 overflow-y-hidden">
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 0 0 9 9"></path></svg> 
+			{{n?.value.contents}}
+		</div>
 		
 		<div class="grid grid-cols-4 gap-1 h-8">
 			<button v-if="true" @click.stop.prevent="appendToThread()" class="flex justify-center items-center rounded bg-slate-300">

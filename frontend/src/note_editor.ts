@@ -36,7 +36,7 @@ export default class NoteEditorVM {
 	}
 	editNote(note_id:number) {
 		// have to get the note
-		const note = notes_graph.mustGetNote(note_id);
+		const note = notes_graph.mustGetNote(note_id).value;
 		this.edit_note_id.value = note_id;
 		if( note.thread === note.id ) {
 			// have to get parent

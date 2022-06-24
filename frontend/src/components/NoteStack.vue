@@ -1,29 +1,55 @@
 <script setup lang="ts">
-import {computed, watch, ref, onMounted, onUpdated, nextTick} from 'vue';
+import {computed, watch, ref, onUpdated, nextTick} from 'vue';
 import type {Ref} from 'vue';
 
-import {notes_graph, note_editor} from '../main';
-import type {Note, Thread} from '../models/graph';
+import {notes_graph} from '../main';
+import type {Note} from '../models/graph';
 
 import NoteUI from './Note.vue';
 
-export interface UINote {
-  note: Note,
-  prev: UINote|undefined,
-  next: UINote|undefined, 
+type StackItem = {
+	note: Ref<Note>,
+	date: string,
+	show_date: boolean,
+	thread: string,
+	show_thread: boolean,
+	is_root: boolean,
+	parent: string
 }
 
-const ui_notes = computed( () => {
-	let prev :UINote|undefined;
+const stack = computed( () => {
+	let prev :StackItem|undefined;
 	return notes_graph.sorted_notes.value.map( n => {
-		const ui_note :UINote = {
+
+		const date = n.value.created.toLocaleDateString();
+		const show_date = !prev || prev.date !== date;
+
+		const show_thread = !prev || show_date || prev.note.value.thread !== n.value.thread;
+		const thread = show_thread ? notes_graph.mustGetThread(n.value.thread).contents : '';
+
+		const is_root = n.value.thread === n.value.id;
+		let parent = "";
+		if( is_root ) {
+			const rel = n.value.relations.find( r => {
+				return r.label === 'thread-out' && r.source === n.value.id;
+			});
+			if( rel ) {
+				const p = notes_graph.getNote(rel.target);
+				if( p ) parent = p.value.contents;
+			}
+		}
+		
+		const s :StackItem = {
 			note:n,
-			prev: prev,
-			next: undefined, 
+			date,
+			show_date,
+			thread,
+			show_thread,
+			is_root,
+			parent
 		};
-		if( prev ) prev.next = ui_note;
-		prev = ui_note;
-		return ui_note;
+		prev = s;
+		return s;
 	});
 });
 
@@ -81,7 +107,25 @@ onUpdated( () => {
 		</a>
 		<div ref="buffer_elem" :style="{height:buffer_height}"></div>
 		<div ref="notes_measurer">
-			<NoteUI v-for="ui_note in ui_notes" :ui_note="ui_note" :key="ui_note.note.id"></NoteUI>
+			<template v-for="s in stack" :key="s.note.value.id">
+				<div v-if="s.show_date" class="font-bold">
+					<div class="pt-2">{{s.date}}</div>
+				</div> 
+				<div v-if="s.is_root" class="text-sm flex">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 0 0 9 9"></path></svg> 
+					<p v-if="s.parent">{{s.parent}}</p>
+					<p v-else>(Parent note not found)</p>
+				</div>
+				<div v-else-if="s.show_thread || s.show_date" class="text-sm flex">
+					<div v-if="s.thread" class="italic text-amber-800 h-5 overflow-clip">
+						{{s.thread}}
+					</div>
+					<div v-else>(thread not found)</div>
+				</div>
+				<NoteUI :note="s.note" ></NoteUI>
+			</template>
+			
 		</div>
+		<div class="h-96">&nbsp;</div>
     </div>
 </template>
