@@ -25,9 +25,9 @@ import {getNotesByDate, getThreads as dbGetThreads} from '../db.ts';
 import type {DBNote, DBThread, DBRelation} from '../db.ts';
 
 export async function getNotes(ctx:Context) {
-	const thread = ctx.params.thread ? parseInt(ctx.params.thread+'') : 1;
-	// get date, limit, and direction from query string
-	const date_str = ctx.url.searchParams.get("date");
+	const search = ctx.url.searchParams;
+	const thread = Number(search.get('thread')) || 1;
+	const date_str = search.get("date");
 	const date = date_str ? new Date(date_str) : new Date;	// maybe take a future date to capture everything.
 	let dir = "backwards"; // default for now
 	let limit = 100;	// for now.

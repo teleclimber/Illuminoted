@@ -1,5 +1,6 @@
 import type {ServerRequest, Response, Context} from "../deps.ts";
-import {createNote, createThread, createRelation} from '../db.ts';
+import {createNote, createThread, createRelation, getNoteById} from '../db.ts';
+import type {DBNote, DBRelation} from '../db.ts';
 
 import {readAll} from 'https://deno.land/std@0.138.0/streams/conversion.ts';
 
@@ -11,8 +12,24 @@ import {readAll} from 'https://deno.land/std@0.138.0/streams/conversion.ts';
 
 const decoder = new TextDecoder();
 
-export function getNote(ctx:Context) {
-	const req = ctx.req;
+export async function getNote(ctx:Context) {
+	const id = parseInt(ctx.params.id+'', 10);
+
+	let ret:{note:DBNote, relations: DBRelation[]};
+	try {
+		ret = await getNoteById(id);
+	} catch(e) {
+		ctx.req.respond({status:500, body:e});
+		throw e;
+	}
+
+	const headers = new Headers;
+	headers.set('Content-Type', 'application/json');
+	ctx.req.respond({
+		status: 200,
+		headers: headers,
+		body: JSON.stringify(ret)
+	});
 }
 
 type PostData = {

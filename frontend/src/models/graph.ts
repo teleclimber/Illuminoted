@@ -37,6 +37,7 @@ export class NotesGraph {
 
 	context_id = ref(1);
 	filter_thread = ref(1);
+	loaded_from = '';
 
 	// Need to stash threads and notes
 	threads :Ref<Map<number,Thread>> = shallowRef(new Map); 
@@ -58,9 +59,10 @@ export class NotesGraph {
 	}
 
 	async getMoreNotes() {
-		const resp = await fetch('/api/notes/'+this.filter_thread.value+'?'
+		const resp = await fetch('/api/notes/?'
 			+ new URLSearchParams({
-				date: this.sorted_notes.value.length === 0 ? '' : this.sorted_notes.value[0].value.created.toISOString()
+				thread: this.filter_thread.value+'',
+				date: this.loaded_from
 			}));
 		if( !resp.ok ) throw new Error("fetch not OK");
 		const data = <{relations: any[], notes: any[]}>await resp.json();
@@ -68,7 +70,11 @@ export class NotesGraph {
 		const relations = data.relations.map( (r:any) => relationFromRaw(r) );
 		if( !Array.isArray(data.notes) ) throw new Error("expected array of notes");
 		const new_note_datas = data.notes.map( (n:any) => noteFromRaw(n) );
-	
+
+		// Currently notes are returned sorted crhonological, so last one is oldest, so use that as loaded from.
+		// Whe we put different sort order in request, adust this.
+		this.loaded_from = new Date(new_note_datas[new_note_datas.length -1].created).toISOString();
+		
 		const temp_notes = new Map(this.notes.value);
 		new_note_datas.forEach( n => {
 			const n2 = <Note>n;
@@ -109,6 +115,23 @@ export class NotesGraph {
 		const n = this.getNote(id);
 		if( !n ) throw new Error("could not find note "+id);
 		return n;
+	}
+	async getLoadNote(id:number) :Promise<Ref<Note>> {	// or you could return a Ref with a "loading" flag?
+		const n = this.getNote(id);
+		if( n ) return n;
+
+		const resp = await fetch('/api/notes/'+id);
+		if( !resp.ok ) throw new Error("fetch not OK");
+		const data = <{relations: any[], note: any}>await resp.json();
+		if( !Array.isArray(data.relations) ) throw new Error("expected an array of relations");
+		const temp_notes = new Map(this.notes.value);
+		const note_data = noteFromRaw(data.note);
+		const n2 = <Note>note_data;
+		n2.relations = data.relations.map( (r:any) => relationFromRaw(r) );
+		const note_ref = shallowRef(n2);
+		temp_notes.set(n2.id, note_ref);
+		this.notes.value = temp_notes;
+		return note_ref;
 	}
 
 	async createNote(ref_note_id:number, relation:"follows"|"thread-out", contents:string, created:Date) {

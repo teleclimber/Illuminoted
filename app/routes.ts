@@ -11,11 +11,13 @@ export default function createRoutes() {
 	const authorizedOnly = {allow:AuthAllow.authorized};
 
 	// notes items CRUD:
-	//r.add("get", "/api/notes/:id", authorizedOnly, getNote);
-	r.add("get", "/api/notes/:thread", authorizedOnly, getNotes);
-	r.add("get", "/api/threads/:root", authorizedOnly, getThreads);
+	r.add("get", "/api/notes/", authorizedOnly, getNotes);	// oh god. That's not right
+	r.add("get", "/api/notes/:id", authorizedOnly, getNote);
 	r.add("post", "/api/notes", authorizedOnly, postNote);
 	//r.add("patch", "/api/notes/:id", authorizedOnly, patchNote);
+
+	r.add("get", "/api/threads/:root", authorizedOnly, getThreads);
+	
 
 	// Need some graph retrieval capabilities!
 

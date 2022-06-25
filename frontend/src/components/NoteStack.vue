@@ -14,7 +14,7 @@ type StackItem = {
 	thread: string,
 	show_thread: boolean,
 	is_root: boolean,
-	parent: string
+	parent: Ref<string>
 }
 
 const stack = computed( () => {
@@ -24,18 +24,24 @@ const stack = computed( () => {
 		const date = n.value.created.toLocaleDateString();
 		const show_date = !prev || prev.date !== date;
 
-		const show_thread = !prev || show_date || prev.note.value.thread !== n.value.thread;
-		const thread = show_thread ? notes_graph.mustGetThread(n.value.thread).contents : '';
-
 		const is_root = n.value.thread === n.value.id;
-		let parent = "";
+		const show_thread = !is_root && (!prev || show_date || prev.note.value.thread !== n.value.thread);
+		let thread = '';
+		if( show_thread ) {
+			const t = notes_graph.getThread(n.value.thread);
+			if( t ) thread = t.contents;
+			else thread = '[thread not loaded]';
+		}
+
+		let parent = ref("loading...");
 		if( is_root ) {
 			const rel = n.value.relations.find( r => {
 				return r.label === 'thread-out' && r.source === n.value.id;
 			});
 			if( rel ) {
-				const p = notes_graph.getNote(rel.target);
-				if( p ) parent = p.value.contents;
+				notes_graph.getLoadNote(rel.target).then( n => {
+					parent.value = n.value.contents;
+				});
 			}
 		}
 		
@@ -111,10 +117,9 @@ onUpdated( () => {
 				<div v-if="s.show_date" class="font-bold">
 					<div class="pt-2">{{s.date}}</div>
 				</div> 
-				<div v-if="s.is_root" class="text-sm flex">
-					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 0 0 9 9"></path></svg> 
-					<p v-if="s.parent">{{s.parent}}</p>
-					<p v-else>(Parent note not found)</p>
+				<div v-if="s.is_root" class="text-sm flex h-5 overflow-y-hidden">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 0 0 9 9"></path></svg> 
+					<p>{{s.parent.value}}</p>
 				</div>
 				<div v-else-if="s.show_thread || s.show_date" class="text-sm flex">
 					<div v-if="s.thread" class="italic text-amber-800 h-5 overflow-clip">
@@ -126,6 +131,6 @@ onUpdated( () => {
 			</template>
 			
 		</div>
-		<div class="h-96">&nbsp;</div>
+		<div class="h-56">&nbsp;</div>
     </div>
 </template>

@@ -104,7 +104,7 @@ const sql_notes_date_forwards = sql_notes_date_base
 
 // For now just force client to include both dates and a limit
 // except that doesn't work because you don't know direction.
-export function getNotesByDate(params :{thread: number, from:Date, backwards: boolean, limit:number}) :{notes:DBNote[], relations: any} {
+export function getNotesByDate(params :{thread: number, from:Date, backwards: boolean, limit:number}) :{notes:DBNote[], relations: DBRelation[]} {
 	const db = getDB();
 	const ret :{notes:DBNote[], relations: any} = {notes: [], relations: undefined};
 	db.transaction( () => {
@@ -120,6 +120,23 @@ export function getNotesByDate(params :{thread: number, from:Date, backwards: bo
 		ret.relations = <DBRelation[]>db.queryEntries(rel_select,  {thread:params.thread, from:params.from, limit: params.limit});
 	});
 	return ret;
+}
+
+export function getNoteById(id:number) :{note:DBNote, relations: DBRelation[]} {
+	const db = getDB();
+	let note :DBNote|undefined;
+	let relations :DBRelation[] = [];
+	db.transaction( () => {
+		const notes = db.queryEntries<DBNote>('SELECT id, thread, contents, created FROM notes WHERE id = :id', {id});
+		if( notes.length === 0 ) throw new Error("note id not found: "+id);
+		note = notes[0];
+		relations = db.queryEntries<DBRelation>('SELECT * FROM relations WHERE source = :id OR target = :id', {id});
+	});
+	if( note === undefined ) throw new Error("no note returned");
+	return {
+		note,
+		relations
+	};
 }
 
 /* More get:
