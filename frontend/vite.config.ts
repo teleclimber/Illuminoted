@@ -3,7 +3,11 @@ import vue from '@vitejs/plugin-vue'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  server: {
+	build: {
+		outDir:'../app/frontend/',
+		emptyOutDir: true
+	},
+	server: {
 		proxy: {
 			'^\/api\/': {
 				target: 'http://localhost:3003',
@@ -19,5 +23,5 @@ export default defineConfig({
 			},
 		}
 	},
-  plugins: [vue()]
-})
+	plugins: [vue()]
+});
