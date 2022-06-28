@@ -104,10 +104,13 @@ onUpdated( () => {
 	});
 });
 
+// Icons from:
+// https://fontawesomeicons.com/svg/icons/git-commit-line
+
 </script>
 
 <template>
-	<div class="px-4 " >
+	<div class="px-4" >
 		<a href="#" ref="load_more_elem" @click.stop.prevent="loadMoreNotes()" class="block border my-2 text-center text-gray-500 italic" style="height: 500px">
 			load more notes
 		</a>

@@ -50,11 +50,13 @@ export class NotesGraph {
 	setContext(id:number) {
 		this.context_id.value = id;
 		this.threads.value = new Map;
+		this.loaded_from = '';
 		this.getThreads();
 	}
 	setFilterThread(id:number) {
 		this.filter_thread.value = id;
 		this.notes.value = new Map;
+		this.loaded_from = '';
 		this.getMoreNotes();
 	}
 

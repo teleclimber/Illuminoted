@@ -28,7 +28,7 @@ export async function getNotes(ctx:Context) {
 	const search = ctx.url.searchParams;
 	const thread = Number(search.get('thread')) || 1;
 	const date_str = search.get("date");
-	const date = date_str ? new Date(date_str) : new Date;	// maybe take a future date to capture everything.
+	const date = date_str ? new Date(date_str) : new Date( Date.now().valueOf() + 1000000000 );
 	let dir = "backwards"; // default for now
 	let limit = 100;	// for now.
 
