@@ -42,7 +42,7 @@ const filter_tread = computed( () => {
 </script>
 
 <template>
-	<header v-if="!show_threads && notes_graph.context_thread.value" class="sticky top-0 z-50 px-2 by-2 bg-gray-100 flex flex-col flex-nowrap md:flex-row" @click="page_control.showThreads()">
+	<header v-if="!show_threads && notes_graph.context_thread.value" class="sticky top-0 z-50 px-2 py-2 bg-gray-100 flex flex-col flex-nowrap md:flex-row" @click="page_control.showThreads()">
 		<div class="h-6 overflow-y-hidden">{{notes_graph.context_thread.value.contents}}</div>
 		<div v-if="filter_tread" class="h-6 overflow-y-hidden flex">
 			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
@@ -60,6 +60,10 @@ const filter_tread = computed( () => {
 		</div>
 		
 		<ThreadUI  :thread="notes_graph.context_thread.value" :is_root="true"></ThreadUI>
+
+		<p class="pt-10 px-2 text-sm text-gray-500">
+			Icon from: <a class="text-blue-400 underline" href="https://www.flaticon.com/free-stickers/creativity" title="creativity stickers">Creativity stickers by Stickers - Flaticon</a>.
+		</p>
 	</div>
 	
 	<NoteStack v-if="!show_threads"></NoteStack>
