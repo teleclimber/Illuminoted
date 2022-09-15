@@ -78,38 +78,14 @@ export type DBRelation = {
 	created: Date
 }
 
-// const sql_notes_date_backwards = `SELECT id, thread, created, contents FROM notes JOIN note_thread ON id = note 
-// 									WHERE created <= :from ORDER BY created DESC LIMIT :limit`
-// const sql_notes_date_forwards  = `SELECT id, thread, created, contents FROM notes JOIN note_thread ON id = note
-// 									WHERE created >= :from ORDER BY created ASC  LIMIT :limit`;
-
-const sql_notes_date_base = `WITH RECURSIVE 
-desc_threads(thread, parent) AS (
-	SELECT :thread, NULL
-	UNION ALL
-	SELECT  relations.source, desc_threads.thread 
-		FROM desc_threads
-		JOIN notes ON desc_threads.thread = notes.thread
-		JOIN relations ON notes.id = relations.target
-		WHERE relations.label = 'thread-out'
-		)
-SELECT notes.id, desc_threads.thread, created, contents FROM desc_threads 
-JOIN notes ON desc_threads.thread = notes.thread `;
-
-const sql_notes_date_backwards = sql_notes_date_base 
-	+ `WHERE created <= :from ORDER BY created DESC LIMIT :limit`;
-
-const sql_notes_date_forwards = sql_notes_date_base 
-	+ `WHERE created >= :from ORDER BY created ASC  LIMIT :limit`;
-
-// For now just force client to include both dates and a limit
-// except that doesn't work because you don't know direction.
-export function getNotesByDate(params :{thread: number, from:Date, backwards: boolean, limit:number}) :{notes:DBNote[], relations: DBRelation[]} {
+export function getNotesByDate(params :{threads: number[], from:Date, backwards: boolean, limit:number}) :{notes:DBNote[], relations: DBRelation[]} {
 	const db = getDB();
-	const ret :{notes:DBNote[], relations: any} = {notes: [], relations: undefined};
+	const ret :{notes:DBNote[], relations: DBRelation[]} = {notes: [], relations: []};
 	db.transaction( () => {
-		const notes_select = params.backwards ? sql_notes_date_backwards : sql_notes_date_forwards;
-		ret.notes = <DBNote[]> db.queryEntries( notes_select, {thread:params.thread, from:params.from, limit: params.limit} );
+		const notes_select = `SELECT notes.id, notes.thread, notes.created, notes.contents FROM notes WHERE notes.thread IN (`+params.threads.join(",")+`) AND created `
+			+  (params.backwards ? `<= :from ORDER BY created DESC` : `>= :from ORDER BY created ASC`)
+			+ ' LIMIT :limit';
+		ret.notes = <DBNote[]> db.queryEntries( notes_select, {from:params.from, limit:params.limit} );
 
 		const rel_select = `WITH sel_notes AS ( ${notes_select}	)
 		SELECT relations.* FROM  sel_notes LEFT JOIN relations ON sel_notes.id = relations.source 
@@ -117,7 +93,7 @@ export function getNotesByDate(params :{thread: number, from:Date, backwards: bo
 		UNION
 		SELECT relations.* FROM  sel_notes LEFT JOIN relations ON sel_notes.id = relations.target
 		WHERE relations.source NOT NULL`;
-		ret.relations = <DBRelation[]>db.queryEntries(rel_select,  {thread:params.thread, from:params.from, limit: params.limit});
+		ret.relations = <DBRelation[]>db.queryEntries(rel_select,  {from:params.from, limit: params.limit});
 	});
 	return ret;
 }
@@ -245,7 +221,6 @@ AND follower.label IS NULL
 export type DBThread = {
 	thread: number,
 	parent: number,
-	depth: number,
 	contents: string,
 	created: Date
 }
@@ -272,7 +247,6 @@ export function getThreads(params :{root:number}) :DBThread[] {
 	const ret :DBThread[] = thread_notes.map( (tn:any) => {
 		const ret :DBThread = {
 			thread: tn.thread,
-			depth: tn.depth,
 			parent: tn.parent,
 			contents: tn.contents,
 			created: tn.created

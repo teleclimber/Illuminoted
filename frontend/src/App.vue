@@ -34,22 +34,11 @@ const show_threads = computed( () => page_control.show_threads.value );
 // - currently selected thread
 // - some scroll indication, like created date of currently visible notes?
 
-const filter_tread = computed( () => {
-	if( page_control.filter_thread.value === page_control.context_id.value ) return;
-	return notes_graph.getThread(page_control.filter_thread.value);
-});
-
 </script>
 
 <template>
 	<header v-if="!show_threads && notes_graph.context_thread.value" class="sticky top-0 z-50 px-2 py-2 bg-gray-100 flex flex-col flex-nowrap md:flex-row" @click="page_control.showThreads()">
 		<div class="h-6 overflow-y-hidden">{{notes_graph.context_thread.value.contents}}</div>
-		<div v-if="filter_tread" class="h-6 overflow-y-hidden flex">
-			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-				<path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
-			</svg>
-			{{filter_tread.contents}}
-		</div>
 	</header>
 
 	<div class="bg-gray-100 pb-4" v-if="notes_graph.context_thread.value && show_threads">

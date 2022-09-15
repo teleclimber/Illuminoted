@@ -26,7 +26,12 @@ import type {DBNote, DBThread, DBRelation} from '../db.ts';
 
 export async function getNotes(ctx:Context) {
 	const search = ctx.url.searchParams;
-	const thread = Number(search.get('thread')) || 1;
+	const threads_str = search.get('threads')
+	if( !threads_str ) {
+		ctx.req.respond({status:400, body:"no threads specified"});
+		return;
+	}
+	const threads = threads_str.split(",").map( t => Number(t));
 	const date_str = search.get("date");
 	const date = date_str ? new Date(date_str) : new Date( Date.now().valueOf() + 1000000000 );
 	let dir = "backwards"; // default for now
@@ -34,7 +39,7 @@ export async function getNotes(ctx:Context) {
 
 	let ret:{notes:DBNote[], relations: DBRelation[]};
 	try {
-		ret = await getNotesByDate({thread, from: date, backwards: true, limit});
+		ret = await getNotesByDate({threads, from: date, backwards: true, limit});
 	} catch(e) {
 		ctx.req.respond({status:500, body:e});
 		throw e;

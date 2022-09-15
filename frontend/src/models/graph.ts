@@ -1,4 +1,4 @@
-import {computed, ref, shallowRef} from 'vue';
+import {computed, ref, shallowRef, reactive} from 'vue';
 import type {Ref, ComputedRef} from 'vue';
 
 
@@ -36,12 +36,13 @@ export type Thread = {
 export class NotesGraph {
 
 	context_id = ref(1);
-	filter_thread = ref(1);
 	loaded_from = '';
 
-	// Need to stash threads and notes
 	threads :Ref<Map<number,Thread>> = shallowRef(new Map); 
 	notes :Ref<Map<number,Ref<Note>>> = shallowRef(new Map);
+
+	selected_threads :Set<number> = reactive( new Set);	// set of thread_ids for which we want to show notes
+	expanded_threads :Set<number> = reactive( new Set);	// set of thread_ids for which we show the children
 
 	context_thread = computed( () => {
 		return this.getThread(this.context_id.value);
@@ -51,19 +52,33 @@ export class NotesGraph {
 		this.context_id.value = id;
 		this.threads.value = new Map;
 		this.loaded_from = '';
+		this.selected_threads.add(id);
 		this.getThreads();
 	}
-	setFilterThread(id:number) {
-		this.filter_thread.value = id;
+
+	selectThread(id:number) {
+		this.selected_threads.add(id);
+		this.reloadNotes();
+	}
+	deselectThread(id:number) {
+		this.selected_threads.delete(id);
+		this.reloadNotes();
+	}
+	reloadNotes() {
 		this.notes.value = new Map;
 		this.loaded_from = '';
 		this.getMoreNotes();
 	}
 
+	toggleExpandedThread(id:number) {
+		if( this.expanded_threads.has(id) ) this.expanded_threads.delete(id);
+		else this.expanded_threads.add(id);
+	}
+
 	async getMoreNotes() {
 		const resp = await fetch('/api/notes/?'
 			+ new URLSearchParams({
-				thread: this.filter_thread.value+'',
+				threads: Array.from(this.selected_threads).join(','),
 				date: this.loaded_from
 			}));
 		if( !resp.ok ) throw new Error("fetch not OK");
@@ -182,6 +197,8 @@ export class NotesGraph {
 			const temp_threads = new Map(this.threads.value);
 			temp_threads.set(new_id, new_thread);
 			this.threads.value = temp_threads;
+
+			this.selected_threads.add(new_id);	// by default the newly created thread is selected
 
 			const r = {
 				source: new_id,
