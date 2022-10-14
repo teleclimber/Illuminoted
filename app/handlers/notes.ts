@@ -1,16 +1,12 @@
-import type {ServerRequest, Response, Context} from "../deps.ts";
+import { Context } from 'https://deno.land/x/dropserver_app@v0.2.0/mod.ts';
 import {createNote, createThread, createRelation, getNoteById} from '../db.ts';
 import type {DBNote, DBRelation} from '../db.ts';
-
-import {readAll} from 'https://deno.land/std@0.138.0/streams/conversion.ts';
 
 // is this really interesting?
 // Dealing with individual notes?
 
 // I suppose we need post and patch
 // But getters are uninteresting, perhaps.
-
-const decoder = new TextDecoder();
 
 export async function getNote(ctx:Context) {
 	const id = parseInt(ctx.params.id+'', 10);
@@ -19,17 +15,11 @@ export async function getNote(ctx:Context) {
 	try {
 		ret = await getNoteById(id);
 	} catch(e) {
-		ctx.req.respond({status:500, body:e});
+		ctx.respondWith(new Response(e, {status:500}));
 		throw e;
 	}
 
-	const headers = new Headers;
-	headers.set('Content-Type', 'application/json');
-	ctx.req.respond({
-		status: 200,
-		headers: headers,
-		body: JSON.stringify(ret)
-	});
+	ctx.respondWith(Response.json(ret));
 }
 
 type PostData = {
@@ -44,10 +34,7 @@ export async function postNote(ctx:Context) {
 	// and the edges that are created at the same time (like "follows"/"next", "side", "merge")
 	// creates an id and returns it probably
 
-	const req = ctx.req;
-	req.body
-	const buf = await readAll(req.body);
-    const json = <PostData>JSON.parse(decoder.decode(buf));
+    const json = <PostData>await ctx.request.json();
 
 	// check contents make sense.
 
@@ -70,21 +57,7 @@ export async function postNote(ctx:Context) {
 		createRelation({source:id, target:t.target, label:t.label, created:json.created});
 	});
 
-	// const headers = new Headers;
-	// headers.set('Content-Type', 'application/json');
-	// const json_resp =  JSON.stringify({id});
-	// const arr_resp = new TextEncoder().encode(json_resp);
-	// const resp = new Response(JSON.stringify({id}), {status:200, headers} )
-	// ctx.req.respond(resp);
-
-	const headers = new Headers;
-	headers.set('Content-Type', 'application/json');
-	const resp: Response = {
-		status: 200,
-		headers: headers,
-		body: JSON.stringify({id})
-	};
-	ctx.req.respond(resp);
+	ctx.respondWith(Response.json({id}));
 }
 
 export function patchNote(ctx:Context) {

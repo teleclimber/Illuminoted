@@ -1,8 +1,6 @@
-import {createApp} from './deps.ts';
+import {createApp} from 'https://deno.land/x/dropserver_app@v0.2.0/mod.ts';
 
 import createRoutes from './routes.ts';
-
-console.log("creating app");
 
 const app = createApp({
 	routes: createRoutes,
@@ -11,7 +9,5 @@ const app = createApp({
 		return createMigrations();
 	}
 });
-
-console.log("created app");
 
 export default app;

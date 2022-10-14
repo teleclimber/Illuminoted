@@ -20,7 +20,7 @@
 
 // create handler that gets and returns notes and relations for a... time period?
 
-import { Context } from 'https://deno.land/x/dropserver_app@v0.1.1/approutes.ts';
+import { Context } from 'https://deno.land/x/dropserver_app@v0.2.0/mod.ts';
 import {getNotesByDate, getThreads as dbGetThreads} from '../db.ts';
 import type {DBNote, DBThread, DBRelation} from '../db.ts';
 
@@ -28,7 +28,7 @@ export async function getNotes(ctx:Context) {
 	const search = ctx.url.searchParams;
 	const threads_str = search.get('threads')
 	if( !threads_str ) {
-		ctx.req.respond({status:400, body:"no threads specified"});
+		ctx.respondWith(new Response("no threads specified", {status:400}));
 		return;
 	}
 	const threads = threads_str.split(",").map( t => Number(t));
@@ -41,17 +41,11 @@ export async function getNotes(ctx:Context) {
 	try {
 		ret = await getNotesByDate({threads, from: date, backwards: true, limit});
 	} catch(e) {
-		ctx.req.respond({status:500, body:e});
+		ctx.respondWith(new Response(e, {status:500}));
 		throw e;
 	}
 
-	const headers = new Headers;
-	headers.set('Content-Type', 'application/json');
-	ctx.req.respond({
-		status: 200,
-		headers: headers,
-		body: JSON.stringify(ret)
-	});
+	ctx.respondWith(Response.json(ret));
 }
 
 export async function getThreads(ctx:Context) {
@@ -61,15 +55,9 @@ export async function getThreads(ctx:Context) {
 	try {
 		ret = await dbGetThreads({root})
 	} catch(e) {
-		ctx.req.respond({status:500, body:e});
+		ctx.respondWith(new Response(e, {status:500}));
 		throw e;
 	}
 
-	const headers = new Headers;
-	headers.set('Content-Type', 'application/json');
-	ctx.req.respond({
-		status: 200,
-		headers: headers,
-		body: JSON.stringify(ret)
-	});
+	ctx.respondWith(Response.json(ret));
 }

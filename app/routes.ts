@@ -1,4 +1,4 @@
-import {RoutesBuilder, AuthAllow} from './deps.ts';
+import {RoutesBuilder, AuthAllow} from 'https://deno.land/x/dropserver_app@v0.2.0/mod.ts';
 
 import {getNote, postNote, patchNote} from './handlers/notes.ts';
 import {getNotes, getThreads} from './handlers/graph.ts';
@@ -18,9 +18,6 @@ export default function createRoutes() {
 
 	r.add("get", "/api/threads/:root", authorizedOnly, getThreads);
 	
-
-	// Need some graph retrieval capabilities!
-
 	// users:
 	r.add("get", "/api/current-user", authorizedOnly, getCurrentUser)
 
