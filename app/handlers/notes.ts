@@ -1,5 +1,5 @@
 import { Context } from 'https://deno.land/x/dropserver_app@v0.2.0/mod.ts';
-import {createNote, createThread, createRelation, getNoteById} from '../db.ts';
+import {createNote, updateContents, createThread, createRelation, getNoteById} from '../db.ts';
 import type {DBNote, DBRelation} from '../db.ts';
 
 // is this really interesting?
@@ -60,8 +60,14 @@ export async function postNote(ctx:Context) {
 	ctx.respondWith(Response.json({id}));
 }
 
-export function patchNote(ctx:Context) {
-	// contents, [edit datetime]
-	// assume edits to edges are done in a separate set of handlers?
-	// or maybe this set of handlers should be called mutators or something.
+type PatchData = {
+	note_id: number,
+	contents?: string,
+}
+export async function patchNote(ctx:Context) {
+	const json = <PatchData>await ctx.request.json();
+	if( json.contents ) {
+		updateContents(json.note_id, json.contents);
+	}
+	ctx.respondWith(new Response('OK', {status:200}));
 }

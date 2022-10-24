@@ -211,6 +211,34 @@ export class NotesGraph {
 
 	}
 
+	async updateContent(note_id:number, contents:string) {
+		// We can just sned everything up to server and wait for an OK.
+		// Except relations should be in form of a delta.
+		// Also maybe don't try to update contents nless it's changed?
+		// Perhaps it's better to think of "edit" as editing content and editing relations separately?
+
+		const rawResponse = await fetch('/api/notes/'+note_id, {
+			method: 'PATCH',
+			headers: {
+				'Accept': 'application/json',
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				note_id,
+				contents,
+			})
+		});
+
+
+		if( rawResponse.status !== 200 ) {
+			alert("Got error trying to update contents");
+		}
+		
+		const note_ref = this.mustGetNote(note_id);
+		note_ref.value.contents = contents;
+		note_ref.value = Object.assign({}, note_ref.value);
+	}
+
 	// Threads..
 	async getThreads() {
 		const resp = await fetch('/api/threads/'+this.context_id.value);

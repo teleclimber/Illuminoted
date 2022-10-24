@@ -69,8 +69,7 @@ export default class NoteEditorVM {
 		}
 
 		if( this.edit_note_id.value !== undefined ) {
-			alert("edit a note not implemented yet");
-			return;
+			await notes_graph.updateContent(this.edit_note_id.value, this.contents.value);
 		}
 		else {
 			const ref_id = this.thread_id.value || this.parent_id.value;

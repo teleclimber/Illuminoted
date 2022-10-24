@@ -30,6 +30,11 @@ export function createNote(note :{contents :string, thread :number, created :Dat
 	return db.lastInsertRowId;
 }
 
+export function updateContents( note_id:number, contents:string) {
+	const db = getDB();
+	db.query('UPDATE notes SET contents = :contents WHERE id = :note_id', {contents, note_id});
+}
+
 export function createThread(note :{contents :string, created :Date, parent :number}) :number {
 	const db = getDB();
 	let id :number = 0;

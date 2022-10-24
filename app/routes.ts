@@ -14,7 +14,7 @@ export default function createRoutes() {
 	r.add("get", "/api/notes/", authorizedOnly, getNotes);	// oh god. That's not right
 	r.add("get", "/api/notes/:id", authorizedOnly, getNote);
 	r.add("post", "/api/notes", authorizedOnly, postNote);
-	//r.add("patch", "/api/notes/:id", authorizedOnly, patchNote);
+	r.add("patch", "/api/notes/:id", authorizedOnly, patchNote);
 
 	r.add("get", "/api/threads/:root", authorizedOnly, getThreads);
 	
