@@ -16,11 +16,6 @@ export interface NoteData {
 	created: Date
 }
 
-interface FetchedNotes {
-	notes: NoteData[],
-	relations: Relation[]
-}
-
 export interface Note extends NoteData {
 	relations: Relation[]
 }
@@ -272,8 +267,26 @@ function noteFromRaw(n:any) :NoteData {
 }
 
 function addRelation( n:Ref<Note>, r:Relation) {
-	n.value.relations.push(r);
-	n.value = Object.assign({}, n.value);
+	const existingI = n.value.relations.findIndex( (existing) => relationEqual(existing, r) );
+	if( existingI !== -1 ) {
+		const existing = n.value.relations[existingI];
+		if( existing.created.getTime() !== r.created.getTime() ) {
+			// updated
+			n.value.relations[existingI] = r;
+			n.value = Object.assign({}, n.value);
+		}
+	}
+	else {
+		n.value.relations.push(r);
+		n.value = Object.assign({}, n.value);
+	}
+}
+
+// ont he backend the unique constriaint is: 
+// UNIQUE(source, target, label) ON CONFLICT REPLACE,
+// Therefore we can check for "equal" by looking at these three.
+function relationEqual( a:Relation, b:Relation) :boolean {
+	return a.source === b.source && a.target === b.target && a.label === b.label;
 }
 
 
