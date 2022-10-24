@@ -1,4 +1,4 @@
-import { Context } from 'https://deno.land/x/dropserver_app@v0.2.0/mod.ts';
+import { Context } from 'https://deno.land/x/dropserver_app@v0.2.1/mod.ts';
 import {createNote, updateContents, createThread, createRelation, getNoteById} from '../db.ts';
 import type {DBNote, DBRelation} from '../db.ts';
 
@@ -18,8 +18,7 @@ export async function getNote(ctx:Context) {
 		ctx.respondWith(new Response(e, {status:500}));
 		throw e;
 	}
-
-	ctx.respondWith(Response.json(ret));
+	ctx.respondJson(ret);
 }
 
 type PostData = {
@@ -57,7 +56,7 @@ export async function postNote(ctx:Context) {
 		createRelation({source:id, target:t.target, label:t.label, created:json.created});
 	});
 
-	ctx.respondWith(Response.json({id}));
+	ctx.respondJson({id});
 }
 
 type PatchData = {
@@ -69,5 +68,5 @@ export async function patchNote(ctx:Context) {
 	if( json.contents ) {
 		updateContents(json.note_id, json.contents);
 	}
-	ctx.respondWith(new Response('OK', {status:200}));
+	ctx.respondStatus(200, "OK");
 }

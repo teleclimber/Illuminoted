@@ -20,7 +20,7 @@
 
 // create handler that gets and returns notes and relations for a... time period?
 
-import { Context } from 'https://deno.land/x/dropserver_app@v0.2.0/mod.ts';
+import { Context } from 'https://deno.land/x/dropserver_app@v0.2.1/mod.ts';
 import {getNotesByDate, getThreads as dbGetThreads} from '../db.ts';
 import type {DBNote, DBThread, DBRelation} from '../db.ts';
 
@@ -28,7 +28,7 @@ export async function getNotes(ctx:Context) {
 	const search = ctx.url.searchParams;
 	const threads_str = search.get('threads')
 	if( !threads_str ) {
-		ctx.respondWith(new Response("no threads specified", {status:400}));
+		ctx.respondStatus(400, "no threads specified");
 		return;
 	}
 	const threads = threads_str.split(",").map( t => Number(t));
@@ -41,11 +41,11 @@ export async function getNotes(ctx:Context) {
 	try {
 		ret = await getNotesByDate({threads, from: date, backwards: true, limit});
 	} catch(e) {
-		ctx.respondWith(new Response(e, {status:500}));
+		ctx.respondStatus(500, e);
 		throw e;
 	}
 
-	ctx.respondWith(Response.json(ret));
+	ctx.respondJson(ret);
 }
 
 export async function getThreads(ctx:Context) {
@@ -55,7 +55,7 @@ export async function getThreads(ctx:Context) {
 	try {
 		ret = await dbGetThreads({root})
 	} catch(e) {
-		ctx.respondWith(new Response(e, {status:500}));
+		ctx.respondStatus(500, e);
 		throw e;
 	}
 

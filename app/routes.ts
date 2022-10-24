@@ -1,4 +1,4 @@
-import {RoutesBuilder, AuthAllow} from 'https://deno.land/x/dropserver_app@v0.2.0/mod.ts';
+import {RoutesBuilder, AuthAllow} from 'https://deno.land/x/dropserver_app@v0.2.1/mod.ts';
 
 import {getNote, postNote, patchNote} from './handlers/notes.ts';
 import {getNotes, getThreads} from './handlers/graph.ts';

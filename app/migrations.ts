@@ -1,4 +1,4 @@
-import {MigrationsBuilder} from 'https://deno.land/x/dropserver_app@v0.2.0/mod.ts';
+import {MigrationsBuilder} from 'https://deno.land/x/dropserver_app@v0.2.1/mod.ts';
 
 import {getDB, getCreateDB, getDBFile} from './db.ts';
 
