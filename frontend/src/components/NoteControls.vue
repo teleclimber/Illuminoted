@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import {ref, computed } from 'vue';
+import {ref, computed, ComputedRef, Ref } from 'vue';
 import { page_control, notes_graph, note_editor } from '../main';
+import type {Note} from '../models/graph';
+import LazyNoteHint from './LazyNoteHint.vue';
 
 const note = computed( () => {
 	if( !page_control.selected_note_id.value ) return undefined;
@@ -14,11 +16,11 @@ const note = computed( () => {
 // - nav: next in thread(?), end of thread(later, we need id of end of thread), thread outs, other relations
 // - note interactions: reply (if last of thread), thread out, relate in other ways (later)
 
-// buttons:
-// - Go to end of thread or reply (if last of thread)
-// - Thread out
-// - Add relation to edited note
-// - Edit note
+// Buttons:
+// - Create note in same thread (should not be needed)
+// - Create note with reply relation 
+// - Create new note in new thread with thread-out as relation
+// - Edit the note (including relations?)
 
 // info:
 // - thread snip (clickable) if not root OR thread parent if root
@@ -30,24 +32,63 @@ const thread = computed( () => {
 	return notes_graph.getThread(note.value.thread);
 });
 
-const parent = computed( () => {
-	if( !note.value ) return undefined;
-	const rel = note.value.relations.find( r => {
-		return r.label === 'thread-out' && r.source === note.value?.id;
+type Rel = {
+	label: string,
+	note: Ref<Note|undefined>
+}
+const rels :ComputedRef<{parent:Rel|undefined,targets:Rel[],sources:Rel[]}> = computed( () => {
+	const ret :{
+		parent: Rel|undefined,
+		targets: Rel[],
+		sources: Rel[]
+	} = {
+		parent: undefined,
+		targets: [],
+		sources: []
+	};
+	if( !note.value ) return ret;
+	const n = note.value;
+	n.relations.forEach( r => {
+		if( r.source === n.id ) {
+			const rel = {
+				label: r.label,
+				note: notes_graph.lazyGetNote(r.target)
+			};
+			if( (r.label === 'thread-out' || r.label === 'in-reply-to') && !ret.parent ) {
+				ret.parent = rel;
+			}
+			else {
+				ret.sources.push(rel);
+			}
+		}
+		else {
+			ret.targets.push({
+				label: r.label,
+				note: notes_graph.lazyGetNote(r.source)
+			});
+		}
 	});
-	if( !rel ) return undefined;
-	const n = notes_graph.getNote(rel.target);
-	if( n ) return n.value;
+
+	return ret;
 });
 
-const thread_outs = computed( () => {
-	if( !note.value ) return [];
-	return note.value.relations.filter( (r) => {
-		return r.label === "thread-out" && r.target === note.value?.id;
-	}).map( r => {
-		return notes_graph.getNote(r.source)
-	}).filter( r => !!r );
-});
+const source_labels = {
+	'thread-out': 'Thread out from',
+	'in-reply-to': 'In reply to',
+	// more...
+}
+function sourceLabel(label:string) :string {
+	// @ts-ignore because com'on 
+	return source_labels[label] || label;
+}
+const target_labels = {
+	'thread-out': 'Thread',
+	'in-reply-to': 'Reply',
+}
+function targetLabel(label:string) :string {
+	// @ts-ignore because com'on 
+	return target_labels[label] || label;
+}
 
 function appendToThread() {
 	if( !note.value ) return;
@@ -73,11 +114,17 @@ const expand_thread = ref(false);
 
 <template>
 	<div v-if="note" class="p-2 bg-white border-t-2">
-		<div v-if="parent" class="h-6 overflow-y-hidden" :class="{'h-auto':expand_thread}" @click.stop.prevent="expand_thread = !expand_thread">Parent: {{parent.contents}}</div>
-		<div v-if="thread" class="h-6 overflow-y-hidden" :class="{'h-auto':expand_thread}" @click.stop.prevent="expand_thread = !expand_thread">Thread: {{thread.contents}}</div>
-		<div v-for="n in thread_outs" class="flex h-6 overflow-y-hidden">
+		<div v-if="rels.parent" class="h-6 overflow-y-hidden" :class="{'h-auto':expand_thread}" @click.stop.prevent="expand_thread = !expand_thread">
+			{{sourceLabel(rels.parent.label)}}: <LazyNoteHint :note="rels.parent.note"></LazyNoteHint>
+		</div>
+		<div v-if="thread" class="italic text-amber-800 h-6 overflow-y-hidden" :class="{'h-auto':expand_thread}" @click.stop.prevent="expand_thread = !expand_thread">Thread: {{thread.contents}}</div>
+		<div v-for="r in rels.sources" class="flex h-6 overflow-y-hidden">
 			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 0 0 9 9"></path></svg> 
-			{{n?.value.contents}}
+			{{sourceLabel(r.label)}}: <LazyNoteHint :note="r.note"></LazyNoteHint>
+		</div>
+		<div v-for="r in rels.targets" class="flex h-6 overflow-y-hidden">
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 0 0 9 9"></path></svg> 
+			{{targetLabel(r.label)}}: <LazyNoteHint :note="r.note"></LazyNoteHint>
 		</div>
 		
 		<div class="grid grid-cols-4 gap-1 h-8">

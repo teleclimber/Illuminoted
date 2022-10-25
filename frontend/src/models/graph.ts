@@ -128,6 +128,16 @@ export class NotesGraph {
 		if( !n ) throw new Error("could not find note "+id);
 		return n;
 	}
+	lazyGetNote(id:number) :Ref<Note|undefined> {
+		const n = this.getNote(id);
+		if( n ) return ref(n);
+
+		const ret :Ref<Note|undefined> = ref(undefined);
+		this.getLoadNote(id).then( n_ref => {
+			ret.value = n_ref.value;
+		});
+		return ret;
+	}
 	async getLoadNote(id:number) :Promise<Ref<Note>> {	// or you could return a Ref with a "loading" flag?
 		const n = this.getNote(id);
 		if( n ) return n;
