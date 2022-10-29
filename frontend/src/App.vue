@@ -57,9 +57,9 @@ const show_threads = computed( () => page_control.show_threads.value );
 	
 	<NoteStack v-if="!show_threads"></NoteStack>
 
-	<div class="sticky bottom-0 z-50">
+	<div v-if="!show_threads" class="sticky bottom-0 z-50">
 		<NoteControls></NoteControls>
-		<NoteEditor v-if="!show_threads"></NoteEditor>
+		<NoteEditor></NoteEditor>
 	</div>
 	
       

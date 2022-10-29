@@ -30,4 +30,5 @@ export default class PageControl {
 		this.selected_note_id.value = undefined;
 	}
 
+	// TODO add and edit note should go through Page Control as well.
 }

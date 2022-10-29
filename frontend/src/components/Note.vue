@@ -1,32 +1,55 @@
 <script setup lang="ts">
-	import {computed, toRefs, Ref} from 'vue';
-	import { page_control, note_editor } from '../main';
-	import type {Note} from '../models/graph';
-	
-	const props = defineProps<{
-		note: Ref<Note>,
-	}>();
-	const {note} = toRefs(props);
+import {computed, toRefs, Ref} from 'vue';
+import { page_control, note_editor } from '../main';
+import type {Note} from '../models/graph';
 
-	// Show icons, not controls:
-	// //ok - is root of thread
-	// - is end of thread (stop icon)
-	// //ok - has thread-outs
-	// - has other relations 
-	// //ok - thread-out and relations in current edit
+import RelationsControls from './RelationsControls.vue';
+import RelationIcon from './RelationIcon.vue';
 
-	const num_thread_out = computed( () => {
-		let num = 0;
-		note.value.relations.forEach(r => {
-			if( r.label === 'thread-out' && r.target === note.value.id ) ++num;
-		});
-		return num;
+const props = defineProps<{
+	note: Ref<Note>,
+}>();
+const {note} = toRefs(props);
+
+const selected = computed( () => page_control.selected_note_id.value === note.value.id );
+
+const relations = computed( () => {
+	const note_id = note.value.id;
+	const ret: Record<'above'|'below', Record<string,number>> = {'above':{}, 'below': {}};
+	note.value.relations.forEach(r => {
+		let dir:'above'|'below' = 'above';
+		if( r.target === note_id ) dir = 'below';
+		if( !ret[dir][r.label] ) ret[dir][r.label] = 0;
+		ret[dir][r.label]++;
 	});
+	return ret;
+});
+
+// Here we could just iterate over note_editor.rel_edits and check if target is this note
+// But that measn doing this for every displayed note. Yikes.
+// Let's do this for now?
+const edit_rels = computed( () => {
+	return note_editor.rel_edit.filter( (d) => d.note_id === note.value.id && (d.action==='' || d.action==='add')  );
+});
+
+const show_rel_controls = computed( () => selected.value && note_editor.has_data.value );
+
+const classes = computed( () => {
+	if( selected.value ) {
+		return ['bg-yellow-200', 'hover:bg-yellow-100']
+	}
+	else if( note.value.id === note_editor.edit_note_id.value ) {
+		return ['bg-lime-200'];
+	}
+	else {
+		return ['hover:bg-yellow-50'];
+	}
+});
 
 </script>
 
 <template>
-	<div class="flex flex-col hover:bg-yellow-50 md:flex-row" :class="{'bg-yellow-200':page_control.selected_note_id.value === note.id}" @click="page_control.selectNote(note.id)">
+	<div class="flex flex-col md:flex-row" :class="classes" @click="page_control.selectNote(note.id)">
 		<div class="flex-shrink-0 text-gray-500 md:w-28">{{note.created.toLocaleTimeString()}}</div>
 		<div class="md:border-l-2 md:pl-1 border-amber-700 flex-grow md:pb-1" >
 			<p class="">{{note.contents}}</p>
@@ -34,13 +57,26 @@
 		
 		<div class="flex flex-shrink-0 justify-end self-end md:w-40 md:self-start">
 			<span>&nbsp;</span>
-			<span v-if="note_editor.parent_id && note_editor.parent_id.value === note.id" class="bg-yellow-200 px-2 rounded">
-				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 0 0 9 9"></path></svg> 					
+
+			<span v-for="d in edit_rels"
+				class="bg-yellow-200 rounded px-1">
+				<RelationIcon :label="d.label" class="h-5 w-5"></RelationIcon>
 			</span>
-			<span v-if="num_thread_out" class="flex">
-				{{num_thread_out}}
-				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 0 0 9 9"></path></svg> 
+
+			<span v-if="Object.keys(relations.above).length" class="flex border-b-2">
+				<span v-for="num, label in relations.above" class="flex ">
+					<RelationIcon :label="label" class="h-5 w-5"></RelationIcon>
+				</span>
 			</span>
+			<span v-if="Object.keys(relations.below).length" class="flex border-t-2"> 
+				<span v-for="num, label in relations.below" class="flex">
+					<RelationIcon :label="label" class="h-5 w-5"></RelationIcon>
+				</span>
+			</span>
+
+			<div class="absolute" v-if="show_rel_controls">
+				<RelationsControls :note="note"></RelationsControls>
+			</div>
 		</div>
 	</div>
 </template>

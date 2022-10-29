@@ -9,6 +9,6 @@
 </script>
 
 <template>
-	<span v-if="note">{{note.contents}}</span>
+	<span v-if="note" class="h-6 inline-block overflow-y-hidden">{{note.contents}}</span>
 	<span v-else>Loading...</span>
 </template>

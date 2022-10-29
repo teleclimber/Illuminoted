@@ -22,6 +22,10 @@ export function getDBFile() :string {
 	return app.appspacePath(dbFilename);
 }
 
+export type RelationLabel = 'thread-out' | 'in-reply-to' | 'see-also';
+export const rel_labels :RelationLabel[] = ['thread-out', 'in-reply-to', 'see-also'];
+
+
 // These should take a transaction or a db
 // or somehow support transactional querying across multipole functions
 export function createNote(note :{contents :string, thread :number, created :Date}) :number {
@@ -42,7 +46,7 @@ export function createThread(note :{contents :string, created :Date, parent :num
 		db.query('INSERT INTO notes ("contents", "thread", "created") VALUES (:contents, :thread, :created)', 
 			{contents: note.contents, thread: 1, created: note.created});
 		id = db.lastInsertRowId;
-		// set the thread to note's id:
+		// set the thread to note's own id:
 		db.query('UPDATE notes SET thread = :id WHERE id = :id', {id});
 		// create the relation
 		createRelation({source:id, target:note.parent, label:"thread-out", created: note.created});
@@ -54,6 +58,12 @@ export function createThread(note :{contents :string, created :Date, parent :num
 export function createRelation(relation:{source :number, target :number, label: string, created :Date} ) {
 	getDB().query('INSERT INTO relations ("source", "target", "label", "created") '
 		+' VALUES(:source, :target, :label, :created)', relation);
+}
+
+export function deleteRelation(source:number, target:number, label: string) {
+	getDB().query('DELETE FROM relations WHERE '
+		+' source = :source, target = :target, label = :label',
+		{source, target, label});
 }
 
 // Graph gets:

@@ -1,12 +1,21 @@
 import {computed, ref, shallowRef, reactive} from 'vue';
 import type {Ref, ComputedRef} from 'vue';
 
+export type RelationLabel = 'thread-out' | 'in-reply-to' | 'see-also';
+export const rel_labels :RelationLabel[] = ['thread-out', 'in-reply-to', 'see-also'];
 
 export interface Relation {
 	source: number,
 	target: number,
-	label: string,
+	label: RelationLabel,
 	created: Date
+}
+
+// Edit Rel assumes that the note_id is the target, and the note being edited is the source.
+export type EditRel = {
+	action: '' | 'delete' | 'add',
+	label: RelationLabel,
+	note_id: number
 }
 
 export interface NoteData {
@@ -156,7 +165,7 @@ export class NotesGraph {
 		return note_ref;
 	}
 
-	async createNote(ref_note_id:number, relation:"follows"|"thread-out", contents:string, created:Date) {
+	async createNote(thread_id:number|undefined, contents:string, rel_deltas:EditRel[],  created:Date) {
 		// create a note by sending data to server
 		// Get back note id, thread, etcc., and update local data
 		// Also may need to update thread
@@ -169,27 +178,31 @@ export class NotesGraph {
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({
-				ref_note_id: ref_note_id,
-				relation: relation,
+				thread_id,
 				contents: contents,
 				created: created,
-				targets: []	// todo later
+				rel_deltas: rel_deltas
 			})
 		});
 
+		const thread_out = rel_deltas.find( (d) => d.label === 'thread-out' );
+
 		const resp = await rawResponse.json();
 		const new_id = Number(resp.id);
+		if( !thread_id ) thread_id = new_id;
 		const new_note:Note = {
 			id: new_id,
-			thread: ref_note_id,	// assumes follows
+			thread: thread_id,
 			contents,
 			created,
 			relations: []
-		}
+		};
 
-		if( relation === "thread-out" ) {
-			new_note.thread = new_note.id;
-			const ref_note = this.mustGetNote(ref_note_id);
+		this.applyRelDeltas(new_note, created, rel_deltas);
+
+		if( thread_out ) {
+			// have to create the thread, add it, and select it.
+			const ref_note = this.mustGetNote(thread_out.note_id);
 			const parent_thread = this.mustGetThread(ref_note.value.thread);
 			const new_thread :Thread = {
 				id: new_id,
@@ -204,28 +217,20 @@ export class NotesGraph {
 			this.threads.value = temp_threads;
 
 			this.selected_threads.add(new_id);	// by default the newly created thread is selected
-
-			const r = {
-				source: new_id,
-				target: ref_note.value.id,
-				label: "thread-out",
-				created,
-			};
-			addRelation(ref_note, r);
-			new_note.relations.push(r)
 		}
 
 		const temp_notes = new Map(this.notes.value);
 		temp_notes.set(new_id, shallowRef(new_note));
 		this.notes.value = temp_notes;
-
 	}
 
-	async updateContent(note_id:number, contents:string) {
+	async updateNote(note_id:number, contents:string, rel_deltas:EditRel[], modified:Date ) {
 		// We can just sned everything up to server and wait for an OK.
 		// Except relations should be in form of a delta.
 		// Also maybe don't try to update contents nless it's changed?
 		// Perhaps it's better to think of "edit" as editing content and editing relations separately?
+
+		rel_deltas = rel_deltas.filter( d => d.action === 'add' || d.action === 'delete');
 
 		const rawResponse = await fetch('/api/notes/'+note_id, {
 			method: 'PATCH',
@@ -236,9 +241,10 @@ export class NotesGraph {
 			body: JSON.stringify({
 				note_id,
 				contents,
+				rel_deltas,
+				modified
 			})
 		});
-
 
 		if( rawResponse.status !== 200 ) {
 			alert("Got error trying to update contents");
@@ -246,7 +252,36 @@ export class NotesGraph {
 		
 		const note_ref = this.mustGetNote(note_id);
 		note_ref.value.contents = contents;
+		this.applyRelDeltas(note_ref.value, modified, rel_deltas);
 		note_ref.value = Object.assign({}, note_ref.value);
+	}
+
+	applyRelDeltas(source_note:Note, created: Date, rel_deltas:EditRel[]) {
+		const source = source_note.id;
+		rel_deltas.forEach( d => {
+			const rel = {
+				source,
+				target: d.note_id,
+				label: d.label,
+				created,
+			};
+			if( d.action === 'add' ) {
+				source_note.relations.push(rel);
+				const target_note = this.getNote(d.note_id);
+				if( target_note ) {
+					addRelation(target_note, rel);
+				}
+			}
+			else if( d.action === 'delete' ) {
+				const i = source_note.relations.findIndex( r => relationEqual(r, rel));
+				if( i == -1 ) throw new Error("unable to find relation to remove");
+				source_note.relations.splice(i, 1);
+				const target_note = this.getNote(d.note_id);
+				if( target_note ) {
+					removeRelation(target_note, rel);
+				}
+			}
+		});
 	}
 
 	// Threads..
@@ -288,9 +323,11 @@ export class NotesGraph {
 }
 
 function relationFromRaw(r:any) :Relation {
+	const label = typedLabel(r.label);
+	if( !label ) throw new Error("bad relation label: "+r.label);
 	return {
 		created: new Date(r.created),
-		label: r.label + '',
+		label,
 		source: parseInt(r.source),
 		target: parseInt(r.target)
 	};
@@ -304,18 +341,25 @@ function noteFromRaw(n:any) :NoteData {
 	};
 }
 
-function addRelation( n:Ref<Note>, r:Relation) {
+function addRelation(n:Ref<Note>, r:Relation) {
 	const existingI = n.value.relations.findIndex( (existing) => relationEqual(existing, r) );
 	if( existingI !== -1 ) {
 		const existing = n.value.relations[existingI];
 		if( existing.created.getTime() !== r.created.getTime() ) {
-			// updated
+			// relation was updated
 			n.value.relations[existingI] = r;
 			n.value = Object.assign({}, n.value);
 		}
 	}
 	else {
 		n.value.relations.push(r);
+		n.value = Object.assign({}, n.value);
+	}
+}
+function removeRelation(n:Ref<Note>, r:Relation) {
+	const existingI = n.value.relations.findIndex( (existing) => relationEqual(existing, r) );
+	if( existingI !== -1 ) {
+		n.value.relations.splice(existingI, 1);
 		n.value = Object.assign({}, n.value);
 	}
 }
@@ -327,7 +371,9 @@ function relationEqual( a:Relation, b:Relation) :boolean {
 	return a.source === b.source && a.target === b.target && a.label === b.label;
 }
 
-
+export function typedLabel(l:string) :RelationLabel|undefined {
+	return rel_labels.find( lt => lt === (l as RelationLabel));
+}
 
 
 // function threadFromRaw(n:any) :Thread|undefined {
