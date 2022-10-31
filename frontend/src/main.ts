@@ -2,6 +2,7 @@ import { createApp } from 'vue';
 import {NotesGraph} from './models/graph';
 import NoteEditorVM from './note_editor';
 import PageControl from './page_control';
+import SearchControl from './search';
 
 export const page_control = new PageControl;
 
@@ -10,6 +11,7 @@ import './index.css';
 
 export const notes_graph = new NotesGraph;
 export const note_editor = new NoteEditorVM;
+export const search_ctl = new SearchControl;
 
 let context_thread = 1;
 const p = window.location.pathname.substring(1);

@@ -93,14 +93,21 @@ export type DBRelation = {
 	created: Date
 }
 
-export function getNotesByDate(params :{threads: number[], from:Date, backwards: boolean, limit:number}) :{notes:DBNote[], relations: DBRelation[]} {
+export function getNotesByDate(params :{threads: number[], from:Date, backwards: boolean, limit:number, search?:string}) :{notes:DBNote[], relations: DBRelation[]} {
 	const db = getDB();
 	const ret :{notes:DBNote[], relations: DBRelation[]} = {notes: [], relations: []};
 	db.transaction( () => {
-		const notes_select = `SELECT notes.id, notes.thread, notes.created, notes.contents FROM notes WHERE notes.thread IN (`+params.threads.join(",")+`) AND created `
-			+  (params.backwards ? `<= :from ORDER BY created DESC` : `>= :from ORDER BY created ASC`)
-			+ ' LIMIT :limit';
-		ret.notes = <DBNote[]> db.queryEntries( notes_select, {from:params.from, limit:params.limit} );
+		const args :{from:Date, limit:number, search?:string} = {from:params.from, limit:params.limit};
+		let notes_select = `SELECT notes.id, notes.thread, notes.created, notes.contents FROM notes `
+			+ `WHERE notes.thread IN (`+params.threads.join(",")+') ';
+		if( params.search ) {
+			args.search = '%'+params.search+'%'
+			notes_select += 'AND notes.contents LIKE :search '
+		}		
+		notes_select += 'AND created '
+			+  (params.backwards ? `<= :from ORDER BY created DESC` : `>= :from ORDER BY created ASC`);
+		notes_select += ' LIMIT :limit';
+		ret.notes = <DBNote[]> db.queryEntries( notes_select, args );
 
 		const rel_select = `WITH sel_notes AS ( ${notes_select}	)
 		SELECT relations.* FROM  sel_notes LEFT JOIN relations ON sel_notes.id = relations.source 

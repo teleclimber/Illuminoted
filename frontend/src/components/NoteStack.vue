@@ -104,6 +104,8 @@ onUpdated( () => {
 	});
 });
 
+const no_notes = computed( () => notes_graph.sorted_notes.value.length === 0 );
+
 // Icons from:
 // https://fontawesomeicons.com/svg/icons/git-commit-line
 
@@ -134,6 +136,7 @@ onUpdated( () => {
 			</template>
 			
 		</div>
+		<div v-if="no_notes" class="text-gray-500 italic">No notes... :(</div>
 		<div class="h-56">&nbsp;</div>
     </div>
 </template>

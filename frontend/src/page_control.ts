@@ -12,6 +12,17 @@ export default class PageControl {
 		this.show_threads.value = false;
 	}
 
+	#show_search = ref(false);
+	showSearch() {
+		this.#show_search.value = true;
+	}
+	hideSearch() {
+		this.#show_search.value = false;
+	}
+	get show_search() {
+		return this.#show_search.value;
+	}
+
 	context_id = ref(1);
 	setContext(id:number) {
 		this.context_id.value = id;

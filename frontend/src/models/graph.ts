@@ -42,6 +42,8 @@ export class NotesGraph {
 	context_id = ref(1);
 	loaded_from = '';
 
+	search_term = ref('');
+
 	threads :Ref<Map<number,Thread>> = shallowRef(new Map); 
 	notes :Ref<Map<number,Ref<Note>>> = shallowRef(new Map);
 
@@ -73,6 +75,10 @@ export class NotesGraph {
 		this.loaded_from = '';
 		this.getMoreNotes();
 	}
+	setSearchTerm(s:string) {
+		this.search_term.value = s;
+		this.reloadNotes();
+	}
 
 	toggleExpandedThread(id:number) {
 		if( this.expanded_threads.has(id) ) this.expanded_threads.delete(id);
@@ -83,7 +89,8 @@ export class NotesGraph {
 		const resp = await fetch('/api/notes/?'
 			+ new URLSearchParams({
 				threads: Array.from(this.selected_threads).join(','),
-				date: this.loaded_from
+				date: this.loaded_from,
+				search: this.search_term.value
 			}));
 		if( !resp.ok ) throw new Error("fetch not OK");
 		const data = <{relations: any[], notes: any[]}>await resp.json();
@@ -94,7 +101,9 @@ export class NotesGraph {
 
 		// Currently notes are returned sorted crhonological, so last one is oldest, so use that as loaded from.
 		// Whe we put different sort order in request, adust this.
-		this.loaded_from = new Date(new_note_datas[new_note_datas.length -1].created).toISOString();
+		if( new_note_datas.length ) {
+			this.loaded_from = new Date(new_note_datas[new_note_datas.length -1].created).toISOString();
+		}
 		
 		const temp_notes = new Map(this.notes.value);
 		new_note_datas.forEach( n => {

@@ -25,21 +25,22 @@ import {getNotesByDate, getThreads as dbGetThreads} from '../db.ts';
 import type {DBNote, DBThread, DBRelation} from '../db.ts';
 
 export async function getNotes(ctx:Context) {
-	const search = ctx.url.searchParams;
-	const threads_str = search.get('threads')
+	const params = ctx.url.searchParams;
+	const threads_str = params.get('threads')
 	if( !threads_str ) {
 		ctx.respondStatus(400, "no threads specified");
 		return;
 	}
 	const threads = threads_str.split(",").map( t => Number(t));
-	const date_str = search.get("date");
+	const date_str = params.get("date");
 	const date = date_str ? new Date(date_str) : new Date( Date.now().valueOf() + 1000000000 );
 	let dir = "backwards"; // default for now
 	let limit = 100;	// for now.
+	const search = params.get("search") || '';
 
 	let ret:{notes:DBNote[], relations: DBRelation[]};
 	try {
-		ret = await getNotesByDate({threads, from: date, backwards: true, limit});
+		ret = await getNotesByDate({threads, from: date, backwards: true, limit, search});
 	} catch(e) {
 		ctx.respondStatus(500, e);
 		throw e;

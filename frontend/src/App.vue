@@ -6,6 +6,7 @@ import NoteStack from './components/NoteStack.vue';
 import ThreadUI from './components/Thread.vue';
 import NoteControls from './components/NoteControls.vue';
 import NoteEditor from './components/NoteEditor.vue';
+import SearchBox from './components/SearchBox.vue';
 
 const show_threads = computed( () => page_control.show_threads.value );
 
@@ -37,13 +38,20 @@ const show_threads = computed( () => page_control.show_threads.value );
 </script>
 
 <template>
-	<header v-if="!show_threads && notes_graph.context_thread.value" class="sticky top-0 z-50 px-2 py-2 bg-gray-100 flex flex-col flex-nowrap md:flex-row" @click="page_control.showThreads()">
-		<div class="h-6 overflow-y-hidden">{{notes_graph.context_thread.value.contents}}</div>
+	<header v-if="!show_threads && notes_graph.context_thread.value" class="sticky justify-between flex top-0 z-50 px-2 py-2 bg-gray-100">
+		<div class="h-6 overflow-y-hidden" @click="page_control.showThreads()">{{notes_graph.context_thread.value.contents}}</div>
+		<SearchBox v-if="page_control.show_search"></SearchBox>
+		<div v-else @click="page_control.showSearch()">
+			<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+			</svg>
+		</div>
+		
 	</header>
 
 	<div class="bg-gray-100 pb-4" v-if="notes_graph.context_thread.value && show_threads">
-		<div @click="page_control.hideThreads()" class="flex justify-center py-2">
-			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+		<div @click="page_control.hideThreads()" class="absolute right-0 top-0 p-4">
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
 				<path fill-rule="evenodd" d="M4.293 15.707a1 1 0 010-1.414l5-5a1 1 0 011.414 0l5 5a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414 0zm0-6a1 1 0 010-1.414l5-5a1 1 0 011.414 0l5 5a1 1 0 01-1.414 1.414L10 5.414 5.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
 			</svg>
 		</div>
