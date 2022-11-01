@@ -11,14 +11,12 @@ const props = defineProps<{
 }>();
 const {note} = toRefs(props);
 
-
 type TextNode = {
 	text: string
 	search_highlight?: boolean
 	url?: string
 	subs?: TextNode[]
 }
-
 
 const contents = computed( () => {
 	const c = note.value.contents;
@@ -107,7 +105,7 @@ const classes = computed( () => {
 </script>
 
 <template>
-	<div class="flex flex-col md:flex-row" :class="classes" @click="page_control.selectNote(note.id)">
+	<div class="flex flex-col md:flex-row" :class="classes" :id="'stack-note-'+note.id" @click="page_control.selectNote(note.id)">
 		<div class="flex-shrink-0 text-gray-500 md:w-28">{{note.created.toLocaleTimeString()}}</div>
 		<div class="md:border-l-2 md:pl-1 border-amber-700 flex-grow md:pb-1" >
 			<p class="">

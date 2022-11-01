@@ -37,6 +37,7 @@ const show = computed( () => note.value && !note_editor.has_data.value );
 
 type Rel = {
 	label: string,
+	note_id: number,
 	note: Ref<Note|undefined>
 }
 const rels :ComputedRef<{parent:Rel|undefined,targets:Rel[],sources:Rel[]}> = computed( () => {
@@ -55,6 +56,7 @@ const rels :ComputedRef<{parent:Rel|undefined,targets:Rel[],sources:Rel[]}> = co
 		if( r.source === n.id ) {
 			const rel = {
 				label: r.label,
+				note_id: r.target,
 				note: notes_graph.lazyGetNote(r.target)
 			};
 			if( (r.label === 'thread-out' || r.label === 'in-reply-to') && !ret.parent ) {
@@ -67,6 +69,7 @@ const rels :ComputedRef<{parent:Rel|undefined,targets:Rel[],sources:Rel[]}> = co
 		else {
 			ret.targets.push({
 				label: r.label,
+				note_id: r.source,
 				note: notes_graph.lazyGetNote(r.source)
 			});
 		}
@@ -118,18 +121,21 @@ const expand_thread = ref(false);
 
 <template>
 	<div v-if="show" class="p-2 bg-white border-t-2">
-		<div v-if="rels.parent" class="flex flex-nowrap h-6 overflow-y-hidden" :class="{'h-auto':expand_thread}" @click.stop.prevent="expand_thread = !expand_thread">
+		<div v-if="rels.parent" class="flex flex-nowrap" :class="{'h-auto':expand_thread}"
+			@click="page_control.scrollToNote(rels.parent?.note_id)">
 			<RelationIcon :label="rels.parent.label" class="h-5 w-5 flex-shrink-0"></RelationIcon>
 			<span class="flex-shrink-0">{{sourceLabel(rels.parent.label)}}:</span>
 			<LazyNoteHint :note="rels.parent.note" class="flex-shrink"></LazyNoteHint>
 		</div>
 		<div v-if="thread" class="italic text-amber-800 h-6 overflow-y-hidden" :class="{'h-auto':expand_thread}" @click.stop.prevent="expand_thread = !expand_thread">Thread: {{thread.contents}}</div>
-		<div v-for="r in rels.sources" class="flex flex-nowrap h-6 overflow-y-hidden">
+		<div v-for="r in rels.sources" class="flex flex-nowrap"
+			@click="page_control.scrollToNote(r.note_id)">
 			<RelationIcon :label="r.label" class="h-5 w-5 flex-shrink-0"></RelationIcon>
 			<span class="flex-shrink-0">{{sourceLabel(r.label)}}:</span>
 			<LazyNoteHint :note="r.note" class="flex-shrink"></LazyNoteHint>
 		</div>
-		<div v-for="r in rels.targets" class="flex flex-nowrap h-6 overflow-y-hidden">
+		<div v-for="r in rels.targets" class="flex flex-nowrap"
+			@click="page_control.scrollToNote(r.note_id)">
 			<RelationIcon :label="r.label" class="h-5 w-5 mr-1 flex-shrink-0"></RelationIcon>
 			<span class="flex-shrink-0">{{targetLabel(r.label)}}:</span>
 			<LazyNoteHint :note="r.note" class="flex-shrink"></LazyNoteHint>

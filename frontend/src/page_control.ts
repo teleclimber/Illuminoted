@@ -42,4 +42,10 @@ export default class PageControl {
 	}
 
 	// TODO add and edit note should go through Page Control as well.
+
+	scrollToNote(note_id:number|undefined) {
+		if( !note_id ) return;	// allows simpler code in templates
+		// temporary hack.
+		document.querySelector('#stack-note-'+note_id)?.scrollIntoView();
+	}
 }
