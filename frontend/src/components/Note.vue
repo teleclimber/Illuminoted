@@ -11,27 +11,60 @@ const props = defineProps<{
 }>();
 const {note} = toRefs(props);
 
+
+type TextNode = {
+	text: string
+	search_highlight?: boolean
+	url?: string
+	subs?: TextNode[]
+}
+
+
 const contents = computed( () => {
 	const c = note.value.contents;
-	let ret :{text: string, search_highlight?: boolean}[] = [];	// note.value.contents;
-	const s = notes_graph.search_term.value;
+	let ret :TextNode[] = [];
+	const url = new RegExp('https?:\/\/\\S+', 'igd');
 	let cur_i = 0;
-	if(s) {
-		const re = new RegExp(s, 'igd');
-		for( const match of note.value.contents.matchAll(re) ) {
-			//@ts-ignore TS does not have indices yet: https://github.com/microsoft/TypeScript/issues/44227
-			const start = match.indices[0][0];
-			//@ts-ignore TS does not have indices yet: https://github.com/microsoft/TypeScript/issues/44227
-			const end = match.indices[0][1];
-			if( start > cur_i ) {
-				ret.push({text:c.substring(cur_i, start)});
-			}
-			ret.push({text:c.substring(start, end), search_highlight: true});
-			cur_i = end;
+	for( const match of c.matchAll(url) ) {
+		//@ts-ignore TS does not have indices yet: https://github.com/microsoft/TypeScript/issues/44227
+		const start = match.indices[0][0];
+		//@ts-ignore TS does not have indices yet: https://github.com/microsoft/TypeScript/issues/44227
+		const end = match.indices[0][1];
+		if( start > cur_i ) {
+			ret.push({text:c.substring(cur_i, start)});
 		}
-		if( cur_i < c.length ) ret.push({text:c.substring(cur_i, c.length)});
-	} else {
-		ret.push({text:c});
+		const href = c.substring(start, end)
+		ret.push({text:href, url:href, subs:[{text:href}]});
+		cur_i = end;
+	}
+	if( cur_i < c.length ) ret.push({text:c.substring(cur_i, c.length)});
+
+	const search = notes_graph.search_term.value;
+	if(search) {
+		// find search term in non-url strings segments (for now)
+		//ret.forEach( (s, i) => {
+		for( let i=ret.length-1; i>=0; --i ) {
+			const sub_ret = ret[i];
+			cur_i = 0;
+			const str = sub_ret.text;
+			const sub:TextNode[] = [];
+			const re = new RegExp(search, 'igd');
+			for( const match of str.matchAll(re) ) {
+				//@ts-ignore TS does not have indices yet: https://github.com/microsoft/TypeScript/issues/44227
+				const start = match.indices[0][0];
+				//@ts-ignore TS does not have indices yet: https://github.com/microsoft/TypeScript/issues/44227
+				const end = match.indices[0][1];
+				if( start > cur_i ) {
+					sub.push({text:str.substring(cur_i, start)});
+				}
+				sub.push({text:str.substring(start, end), search_highlight: true});
+				cur_i = end;
+			}
+			if( cur_i < str.length ) sub.push({text:str.substring(cur_i, str.length)});
+
+			if( sub_ret.url !== undefined ) sub_ret.subs = sub;
+			else ret.splice(i, 1, ...sub);
+		};
 	}
 	return ret;
 });
@@ -79,7 +112,13 @@ const classes = computed( () => {
 		<div class="md:border-l-2 md:pl-1 border-amber-700 flex-grow md:pb-1" >
 			<p class="">
 				<template v-for="c in contents">
-					<span class="bg-pink-300" v-if="c.search_highlight">{{c.text}}</span>
+					<a v-if="c.url" :href="c.url" class="text-blue-600 underline">
+						<template v-for="sub_c in c.subs">
+							<span v-if="sub_c.search_highlight" class="bg-pink-300">{{sub_c.text}}</span>
+							<span v-else>{{sub_c.text}}</span>
+						</template>
+					</a>
+					<span v-else-if="c.search_highlight" class="bg-pink-300">{{c.text}}</span>
 					<span v-else>{{c.text}}</span>
 				</template>
 			</p>
