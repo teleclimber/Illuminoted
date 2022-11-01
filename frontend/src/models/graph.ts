@@ -75,9 +75,12 @@ export class NotesGraph {
 		this.loaded_from = '';
 		this.getMoreNotes();
 	}
+
+	#search_timeout:number|undefined;
 	setSearchTerm(s:string) {
 		this.search_term.value = s;
-		this.reloadNotes();
+		if( this.#search_timeout ) clearTimeout(this.#search_timeout);
+		this.#search_timeout = setTimeout( () => this.reloadNotes(), 150 );
 	}
 
 	toggleExpandedThread(id:number) {
@@ -119,19 +122,6 @@ export class NotesGraph {
 		});
 
 		this.notes.value = temp_notes;
-	
-		// const new_notes = <Note[]> new_note_datas;
-		// new_notes.sort( (a, b) => a.created < b.created ? -1 : 1);
-
-		// if( this.notes.value.length !== 0 ) {
-		// 	const first = this.notes.value[0];
-		// 	while( new_notes.length !== 0 && new_notes[new_notes.length-1].created > )
-		// }
-
-		// this.notes.value = ret;	// later merge and deduplicate, etc...?
-		// this.notes.value.sort( (a, b) => a.created < b.created ? -1 : 1);
-	
-		// console.log("notes with relations: ", this.notes);
 	}
 
 	sorted_notes :ComputedRef<Ref<Note>[]> = computed( () => {
@@ -315,9 +305,6 @@ export class NotesGraph {
 			const p = temp_threads.get(t.parent);
 			p?.children.push(t);
 		});
-
-		console.log(temp_threads)
-
 		this.threads.value = temp_threads;
 	}
 

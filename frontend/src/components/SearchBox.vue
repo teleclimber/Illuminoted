@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, Ref, watch } from 'vue';
+import { onMounted, ref, Ref } from 'vue';
 import { page_control, search_ctl } from '../main';
 
 const input_elem :Ref<HTMLInputElement|undefined> = ref(); 

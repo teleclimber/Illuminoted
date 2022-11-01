@@ -15,7 +15,6 @@ const sel_input_value = ref(data_sel_value.value);
 watch( sel_input_value, (new_val) => {
 	if( new_val ) notes_graph.selectThread(props.thread.id);
 	else notes_graph.deselectThread(props.thread.id);
-	console.log("new value", new_val)
 });
 watch( data_sel_value, (new_val) => sel_input_value.value = new_val);
 
