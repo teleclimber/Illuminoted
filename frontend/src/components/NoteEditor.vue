@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { computed } from '@vue/reactivity';
 import {ref, Ref, watch } from 'vue';
-import { notes_graph, note_editor } from '../main';
+import { useNotesGraphStore } from '../models/graph';
+import { useNoteEditorStore } from '../note_editor';
+
 import type { EditRel } from '../models/graph';
 
 import LazyNoteHint from './LazyNoteHint.vue';
 import RelationIcon from './RelationIcon.vue';
+
+const notesStore = useNotesGraphStore();
+const noteEditorStore = useNoteEditorStore();
 
 const text_input_elem :Ref<HTMLInputElement|undefined> = ref();
 watch( text_input_elem, () => {
@@ -14,7 +19,7 @@ watch( text_input_elem, () => {
 });
 
 const rels = computed( () => {
-	return note_editor.rel_edit.filter( r => r.action !== 'delete' );
+	return noteEditorStore.rel_edit.filter( r => r.action !== 'delete' );
 });
 
 const source_labels = {
@@ -27,34 +32,34 @@ function sourceLabel(label:string) :string {
 	return source_labels[label] || label;
 }
 
-const thread = note_editor.thread;
-const contents = note_editor.contents;
+// const thread = noteEditorStore.thread;
+// const contents = noteEditorStore.contents;
 
 const saving = ref(false);
 async function saveNote() {
 	saving.value = true;
-	await note_editor.saveNote();
+	await noteEditorStore.saveNote();
 	saving.value = false;
 
 	// after that, maybe pre-select the last or newest thread to follow on?
 }
 function reset() {
-	if( !saving.value ) note_editor.reset();
+	if( !saving.value ) noteEditorStore.reset();
 }
 function removeRel(d:EditRel) {
-	note_editor.editRelation(d.note_id, d.label, false);
+	noteEditorStore.editRelation(d.note_id, d.label, false);
 }
 
 </script>
 
 <template>
-	<div v-if="note_editor.has_data.value" class="p-2 bg-white border-t-2">
-		<p v-if="thread" class="italic text-amber-800 max-w-prose whitespace-nowrap overflow-clip">Thread: {{thread.contents}}</p>
+	<div v-if="noteEditorStore.has_data" class="p-2 bg-white border-t-2">
+		<p v-if="noteEditorStore.thread" class="italic text-amber-800 max-w-prose whitespace-nowrap overflow-clip">Thread: {{noteEditorStore.thread.contents}}</p>
 		<ul>
 			<li v-for="d in rels" class="flex flex-nowrap">
 				<RelationIcon :label="d.label" class="h-5 w-5 flex-shrink-0"></RelationIcon>
 				<span class="flex-shrink-0">{{sourceLabel(d.label)}}:</span>
-				<LazyNoteHint :note="notes_graph.lazyGetNote(d.note_id)" class="flex-shrink"></LazyNoteHint>
+				<LazyNoteHint :note="notesStore.lazyGetNote(d.note_id)" class="flex-shrink"></LazyNoteHint>
 				<button
 					v-if="d.label !== 'thread-out'"
 					class="bg-blue-600 text-white px-2 py-1 text-sm uppercase rounded disabled:bg-gray-200"
@@ -62,7 +67,7 @@ function removeRel(d:EditRel) {
 			</li>
 		</ul>
 		<div>
-			<textarea ref="text_input_elem" v-model="contents" class="w-full h-32 border"></textarea>
+			<textarea ref="text_input_elem" v-model="noteEditorStore.contents" class="w-full h-32 border"></textarea>
 		</div>
 		<div class="flex justify-between">
 			<button

@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import {computed, toRefs, Ref} from 'vue';
-import { page_control, note_editor, notes_graph } from '../main';
+import { useNotesGraphStore } from '../models/graph';
+import { useNoteEditorStore } from '../note_editor';
+import { usePageControlStore } from '../page_control';
+
 import type {Note} from '../models/graph';
 
 import RelationsControls from './RelationsControls.vue';
 import RelationIcon from './RelationIcon.vue';
+
+const notesStore = useNotesGraphStore();
+const noteEditorStore = useNoteEditorStore();
+const pageStore = usePageControlStore();
 
 const props = defineProps<{
 	note: Ref<Note>,
@@ -37,7 +44,7 @@ const contents = computed( () => {
 	}
 	if( cur_i < c.length ) ret.push({text:c.substring(cur_i, c.length)});
 
-	const search = notes_graph.search_term.value;
+	const search = notesStore.search_term;
 	if(search) {
 		// find search term in non-url strings segments (for now)
 		//ret.forEach( (s, i) => {
@@ -67,7 +74,7 @@ const contents = computed( () => {
 	return ret;
 });
 
-const selected = computed( () => page_control.selected_note_id.value === note.value.id );
+const selected = computed( () => pageStore.selected_note_id === note.value.id );
 
 const relations = computed( () => {
 	const note_id = note.value.id;
@@ -81,20 +88,20 @@ const relations = computed( () => {
 	return ret;
 });
 
-// Here we could just iterate over note_editor.rel_edits and check if target is this note
+// Here we could just iterate over noteEditorStore.rel_edits and check if target is this note
 // But that measn doing this for every displayed note. Yikes.
 // Let's do this for now?
 const edit_rels = computed( () => {
-	return note_editor.rel_edit.filter( (d) => d.note_id === note.value.id && (d.action==='' || d.action==='add')  );
+	return noteEditorStore.rel_edit.filter( (d) => d.note_id === note.value.id && (d.action==='' || d.action==='add')  );
 });
 
-const show_rel_controls = computed( () => selected.value && note_editor.has_data.value );
+const show_rel_controls = computed( () => selected.value && noteEditorStore.has_data );
 
 const classes = computed( () => {
 	if( selected.value ) {
 		return ['bg-yellow-200', 'hover:bg-yellow-100']
 	}
-	else if( note.value.id === note_editor.edit_note_id.value ) {
+	else if( note.value.id === noteEditorStore.edit_note_id ) {
 		return ['bg-lime-200'];
 	}
 	else {
@@ -105,7 +112,7 @@ const classes = computed( () => {
 </script>
 
 <template>
-	<div class="flex flex-col md:flex-row" :class="classes" :id="'stack-note-'+note.id" @click="page_control.selectNote(note.id)">
+	<div class="flex flex-col md:flex-row" :class="classes" :id="'stack-note-'+note.id" @click="pageStore.selectNote(note.id)">
 		<div class="flex-shrink-0 text-gray-500 md:w-28">{{note.created.toLocaleTimeString()}}</div>
 		<div class="md:border-l-2 md:pl-1 border-amber-700 flex-grow md:pb-1" >
 			<p class="">

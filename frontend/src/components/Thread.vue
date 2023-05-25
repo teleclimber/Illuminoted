@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import {ref, computed, watch} from 'vue';
-import { notes_graph } from '../main';
+import { useNotesGraphStore } from '../models/graph';
+
 import ThreadUI from './Thread.vue';
 import type {Thread} from '../models/graph';
+
+const notesStore = useNotesGraphStore();
+
 const props = defineProps<{
 	thread: Thread,
 	is_root?: boolean
@@ -10,24 +14,24 @@ const props = defineProps<{
 
 const show_full = ref(false);
 
-const data_sel_value = computed( () => notes_graph.selected_threads.has(props.thread.id) );
+const data_sel_value = computed( () => notesStore.selected_threads.has(props.thread.id) );
 const sel_input_value = ref(data_sel_value.value);
 watch( sel_input_value, (new_val) => {
-	if( new_val ) notes_graph.selectThread(props.thread.id);
-	else notes_graph.deselectThread(props.thread.id);
+	if( new_val ) notesStore.selectThread(props.thread.id);
+	else notesStore.deselectThread(props.thread.id);
 });
 watch( data_sel_value, (new_val) => sel_input_value.value = new_val);
 
 const has_children = computed( () => props.thread.children.length === 0 );
 const show_children = computed( () => {
-	return notes_graph.expanded_threads.has(props.thread.id);
+	return notesStore.expanded_threads.has(props.thread.id);
 });
 </script>
 
 <template>
 	<div class="border-blue-500 pl-4" :class="{'border-l': false && !props.is_root}">
 		<div class="py-1 flex cursor-pointer hover:bg-yellow-50" >
-			<div class="pr-2" :class="{'text-gray-400':has_children}" @click="notes_graph.toggleExpandedThread(props.thread.id)">
+			<div class="pr-2" :class="{'text-gray-400':has_children}" @click="notesStore.toggleExpandedThread(props.thread.id)">
 				<svg v-if="show_children" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
 				</svg>

@@ -1,13 +1,20 @@
 <script setup lang="ts">
 import {ref, computed, ComputedRef, Ref } from 'vue';
-import { page_control, notes_graph, note_editor } from '../main';
+import { useNotesGraphStore } from '../models/graph';
+import { useNoteEditorStore } from '../note_editor';
+import { usePageControlStore } from '../page_control';
+
 import type {Note} from '../models/graph';
 import LazyNoteHint from './LazyNoteHint.vue';
 import RelationIcon from './RelationIcon.vue';
 
+const notesStore = useNotesGraphStore();
+const noteEditorStore = useNoteEditorStore();
+const pageStore = usePageControlStore();
+
 const note = computed( () => {
-	if( !page_control.selected_note_id.value ) return undefined;
-	const n = notes_graph.getNote(page_control.selected_note_id.value);
+	if( !pageStore.selected_note_id ) return undefined;
+	const n = notesStore.getNote(pageStore.selected_note_id);
 	if( n ) return n.value;
 });
 
@@ -30,10 +37,10 @@ const note = computed( () => {
 
 const thread = computed( () => {
 	if( !note.value ) return undefined;
-	return notes_graph.getThread(note.value.thread);
+	return notesStore.getThread(note.value.thread);
 });
 
-const show = computed( () => note.value && !note_editor.has_data.value );
+const show = computed( () => note.value && !noteEditorStore.has_data );
 
 type Rel = {
 	label: string,
@@ -57,7 +64,7 @@ const rels :ComputedRef<{parent:Rel|undefined,targets:Rel[],sources:Rel[]}> = co
 			const rel = {
 				label: r.label,
 				note_id: r.target,
-				note: notes_graph.lazyGetNote(r.target)
+				note: notesStore.lazyGetNote(r.target)
 			};
 			if( (r.label === 'thread-out' || r.label === 'in-reply-to') && !ret.parent ) {
 				ret.parent = rel;
@@ -70,7 +77,7 @@ const rels :ComputedRef<{parent:Rel|undefined,targets:Rel[],sources:Rel[]}> = co
 			ret.targets.push({
 				label: r.label,
 				note_id: r.source,
-				note: notes_graph.lazyGetNote(r.source)
+				note: notesStore.lazyGetNote(r.source)
 			});
 		}
 	});
@@ -99,20 +106,20 @@ function targetLabel(label:string) :string {
 
 function appendToThread() {
 	if( !note.value ) return;
-	note_editor.appendToThread(note.value.thread);
-	page_control.deselectNote();
+	noteEditorStore.appendToThread(note.value.thread);
+	pageStore.deselectNote();
 }
 
 function threadOut() {
 	if( !note.value ) return;
-	note_editor.threadOut(note.value.id, note.value.thread);
-	page_control.deselectNote();
+	noteEditorStore.threadOut(note.value.id, note.value.thread);
+	pageStore.deselectNote();
 }
 
 function editNote() {
 	if( !note.value ) return;
-	note_editor.editNote(note.value.id);
-	page_control.deselectNote();
+	noteEditorStore.editNote(note.value.id);
+	pageStore.deselectNote();
 }
 
 const expand_thread = ref(false);
@@ -122,20 +129,20 @@ const expand_thread = ref(false);
 <template>
 	<div v-if="show" class="p-2 bg-white border-t-2">
 		<div v-if="rels.parent" class="flex flex-nowrap" :class="{'h-auto':expand_thread}"
-			@click="page_control.scrollToNote(rels.parent?.note_id)">
+			@click="pageStore.scrollToNote(rels.parent?.note_id)">
 			<RelationIcon :label="rels.parent.label" class="h-5 w-5 flex-shrink-0"></RelationIcon>
 			<span class="flex-shrink-0">{{sourceLabel(rels.parent.label)}}:</span>
 			<LazyNoteHint :note="rels.parent.note" class="flex-shrink"></LazyNoteHint>
 		</div>
 		<div v-if="thread" class="italic text-amber-800 h-6 overflow-y-hidden" :class="{'h-auto':expand_thread}" @click.stop.prevent="expand_thread = !expand_thread">Thread: {{thread.contents}}</div>
 		<div v-for="r in rels.sources" class="flex flex-nowrap"
-			@click="page_control.scrollToNote(r.note_id)">
+			@click="pageStore.scrollToNote(r.note_id)">
 			<RelationIcon :label="r.label" class="h-5 w-5 flex-shrink-0"></RelationIcon>
 			<span class="flex-shrink-0">{{sourceLabel(r.label)}}:</span>
 			<LazyNoteHint :note="r.note" class="flex-shrink"></LazyNoteHint>
 		</div>
 		<div v-for="r in rels.targets" class="flex flex-nowrap"
-			@click="page_control.scrollToNote(r.note_id)">
+			@click="pageStore.scrollToNote(r.note_id)">
 			<RelationIcon :label="r.label" class="h-5 w-5 mr-1 flex-shrink-0"></RelationIcon>
 			<span class="flex-shrink-0">{{targetLabel(r.label)}}:</span>
 			<LazyNoteHint :note="r.note" class="flex-shrink"></LazyNoteHint>

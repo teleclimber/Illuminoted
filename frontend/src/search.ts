@@ -1,12 +1,17 @@
 import { ref , watch} from "vue";
-import { notes_graph } from "./main";
+import { defineStore } from 'pinia';
+import { useNotesGraphStore } from './models/graph';
 
-export default class SearchControl {
-	cur_search = ref('');
+export const useSearchControlStore = defineStore('search-control', () => {
+	const notesStore = useNotesGraphStore();
 
-	constructor() {
-		watch( this.cur_search, (s) => {
-			notes_graph.setSearchTerm(s);
-		});
+	const cur_search = ref('');
+	
+	watch( cur_search, (s) => {
+		notesStore.setSearchTerm(s);
+	});
+
+	return {
+		cur_search
 	}
-}
+});

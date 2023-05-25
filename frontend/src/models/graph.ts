@@ -1,5 +1,6 @@
 import {computed, ref, shallowRef, reactive} from 'vue';
 import type {Ref, ComputedRef} from 'vue';
+import { defineStore } from 'pinia';
 
 export type RelationLabel = 'thread-out' | 'in-reply-to' | 'see-also';
 export const rel_labels :RelationLabel[] = ['thread-out', 'in-reply-to', 'see-also'];
@@ -37,63 +38,63 @@ export type Thread = {
 	children: Thread[]
 }
 
-export class NotesGraph {
+export const useNotesGraphStore = defineStore('notes-graph', () => {
 
-	context_id = ref(1);
-	loaded_from = '';
+	const context_id = ref(1);
+	let loaded_from = '';
 
-	search_term = ref('');
+	const search_term = ref('');
 
-	threads :Ref<Map<number,Thread>> = shallowRef(new Map); 
-	notes :Ref<Map<number,Ref<Note>>> = shallowRef(new Map);
+	const threads :Ref<Map<number,Thread>> = shallowRef(new Map); 
+	const notes :Ref<Map<number,Ref<Note>>> = shallowRef(new Map);
 
-	selected_threads :Set<number> = reactive( new Set);	// set of thread_ids for which we want to show notes
-	expanded_threads :Set<number> = reactive( new Set);	// set of thread_ids for which we show the children
+	const selected_threads :Set<number> = reactive(new Set);	// set of thread_ids for which we want to show notes
+	const expanded_threads :Set<number> = reactive(new Set);	// set of thread_ids for which we show the children
 
-	context_thread = computed( () => {
-		return this.getThread(this.context_id.value);
+	const context_thread = computed( () => {
+		return getThread(context_id.value);
 	});
 
-	setContext(id:number) {
-		this.context_id.value = id;
-		this.threads.value = new Map;
-		this.loaded_from = '';
-		this.selected_threads.add(id);
-		this.getThreads();
+	function setContext(id:number) {
+		context_id.value = id;
+		threads.value = new Map;
+		loaded_from = '';
+		selected_threads.add(id);
+		getThreads();
 	}
 
-	selectThread(id:number) {
-		this.selected_threads.add(id);
-		this.reloadNotes();
+	function selectThread(id:number) {
+		selected_threads.add(id);
+		reloadNotes();
 	}
-	deselectThread(id:number) {
-		this.selected_threads.delete(id);
-		this.reloadNotes();
+	function deselectThread(id:number) {
+		selected_threads.delete(id);
+		reloadNotes();
 	}
-	reloadNotes() {
-		this.notes.value = new Map;
-		this.loaded_from = '';
-		this.getMoreNotes();
-	}
-
-	#search_timeout:number|undefined;
-	setSearchTerm(s:string) {
-		this.search_term.value = s;
-		if( this.#search_timeout ) clearTimeout(this.#search_timeout);
-		this.#search_timeout = setTimeout( () => this.reloadNotes(), 150 );
+	function reloadNotes() {
+		notes.value = new Map;
+		loaded_from = '';
+		getMoreNotes();
 	}
 
-	toggleExpandedThread(id:number) {
-		if( this.expanded_threads.has(id) ) this.expanded_threads.delete(id);
-		else this.expanded_threads.add(id);
+	let search_timeout:number|undefined = undefined;
+	function setSearchTerm(s:string) {
+		search_term.value = s;
+		if( search_timeout ) clearTimeout(search_timeout);
+		search_timeout = setTimeout( () => reloadNotes(), 150 );
 	}
 
-	async getMoreNotes() {
+	function toggleExpandedThread(id:number) {
+		if( expanded_threads.has(id) ) expanded_threads.delete(id);
+		else expanded_threads.add(id);
+	}
+
+	async function getMoreNotes() {
 		const resp = await fetch('/api/notes/?'
 			+ new URLSearchParams({
-				threads: Array.from(this.selected_threads).join(','),
-				date: this.loaded_from,
-				search: this.search_term.value
+				threads: Array.from(selected_threads).join(','),
+				date: loaded_from,
+				search: search_term.value
 			}));
 		if( !resp.ok ) throw new Error("fetch not OK");
 		const data = <{relations: any[], notes: any[]}>await resp.json();
@@ -105,10 +106,10 @@ export class NotesGraph {
 		// Currently notes are returned sorted crhonological, so last one is oldest, so use that as loaded from.
 		// Whe we put different sort order in request, adust this.
 		if( new_note_datas.length ) {
-			this.loaded_from = new Date(new_note_datas[new_note_datas.length -1].created).toISOString();
+			loaded_from = new Date(new_note_datas[new_note_datas.length -1].created).toISOString();
 		}
 		
-		const temp_notes = new Map(this.notes.value);
+		const temp_notes = new Map(notes.value);
 		new_note_datas.forEach( n => {
 			const n2 = <Note>n;
 			n2.relations = [];
@@ -121,50 +122,50 @@ export class NotesGraph {
 			if( note ) addRelation(note, r);
 		});
 
-		this.notes.value = temp_notes;
+		notes.value = temp_notes;
 	}
 
-	sorted_notes :ComputedRef<Ref<Note>[]> = computed( () => {
-		return Array.from(this.notes.value, ([_, t]) => t).sort( (a, b) => a.value.created < b.value.created ? -1 : 1);
+	const sorted_notes :ComputedRef<Ref<Note>[]> = computed( () => {
+		return Array.from(notes.value, ([_, t]) => t).sort( (a, b) => a.value.created < b.value.created ? -1 : 1);
 	});
 
-	getNote(id:number) :Ref<Note>|undefined {
-		return this.notes.value.get(id);
+	function getNote(id:number) :Ref<Note>|undefined {
+		return notes.value.get(id);
 	}
-	mustGetNote(id:number) :Ref<Note> {
-		const n = this.getNote(id);
+	function mustGetNote(id:number) :Ref<Note> {
+		const n = getNote(id);
 		if( !n ) throw new Error("could not find note "+id);
 		return n;
 	}
-	lazyGetNote(id:number) :Ref<Note|undefined> {
-		const n = this.getNote(id);
+	function lazyGetNote(id:number) :Ref<Note|undefined> {
+		const n = getNote(id);
 		if( n ) return ref(n);
 
 		const ret :Ref<Note|undefined> = ref(undefined);
-		this.getLoadNote(id).then( n_ref => {
+		getLoadNote(id).then( n_ref => {
 			ret.value = n_ref.value;
 		});
 		return ret;
 	}
-	async getLoadNote(id:number) :Promise<Ref<Note>> {	// or you could return a Ref with a "loading" flag?
-		const n = this.getNote(id);
+	async function getLoadNote(id:number) :Promise<Ref<Note>> {	// or you could return a Ref with a "loading" flag?
+		const n = getNote(id);
 		if( n ) return n;
 
 		const resp = await fetch('/api/notes/'+id);
 		if( !resp.ok ) throw new Error("fetch not OK");
 		const data = <{relations: any[], note: any}>await resp.json();
 		if( !Array.isArray(data.relations) ) throw new Error("expected an array of relations");
-		const temp_notes = new Map(this.notes.value);
+		const temp_notes = new Map(notes.value);
 		const note_data = noteFromRaw(data.note);
 		const n2 = <Note>note_data;
 		n2.relations = data.relations.map( (r:any) => relationFromRaw(r) );
 		const note_ref = shallowRef(n2);
 		temp_notes.set(n2.id, note_ref);
-		this.notes.value = temp_notes;
+		notes.value = temp_notes;
 		return note_ref;
 	}
 
-	async createNote(thread_id:number|undefined, contents:string, rel_deltas:EditRel[],  created:Date) {
+	async function createNote(thread_id:number|undefined, contents:string, rel_deltas:EditRel[],  created:Date) {
 		// create a note by sending data to server
 		// Get back note id, thread, etcc., and update local data
 		// Also may need to update thread
@@ -197,12 +198,12 @@ export class NotesGraph {
 			relations: []
 		};
 
-		this.applyRelDeltas(new_note, created, rel_deltas);
+		applyRelDeltas(new_note, created, rel_deltas);
 
 		if( thread_out ) {
 			// have to create the thread, add it, and select it.
-			const ref_note = this.mustGetNote(thread_out.note_id);
-			const parent_thread = this.mustGetThread(ref_note.value.thread);
+			const ref_note = mustGetNote(thread_out.note_id);
+			const parent_thread = mustGetThread(ref_note.value.thread);
 			const new_thread :Thread = {
 				id: new_id,
 				contents,
@@ -211,19 +212,19 @@ export class NotesGraph {
 				children: []
 			}
 			parent_thread.children.push(new_thread);
-			const temp_threads = new Map(this.threads.value);
+			const temp_threads = new Map(threads.value);
 			temp_threads.set(new_id, new_thread);
-			this.threads.value = temp_threads;
+			threads.value = temp_threads;
 
-			this.selected_threads.add(new_id);	// by default the newly created thread is selected
+			selected_threads.add(new_id);	// by default the newly created thread is selected
 		}
 
-		const temp_notes = new Map(this.notes.value);
+		const temp_notes = new Map(notes.value);
 		temp_notes.set(new_id, shallowRef(new_note));
-		this.notes.value = temp_notes;
+		notes.value = temp_notes;
 	}
 
-	async updateNote(note_id:number, contents:string, rel_deltas:EditRel[], modified:Date ) {
+	async function updateNote(note_id:number, contents:string, rel_deltas:EditRel[], modified:Date ) {
 		// We can just sned everything up to server and wait for an OK.
 		// Except relations should be in form of a delta.
 		// Also maybe don't try to update contents nless it's changed?
@@ -249,13 +250,13 @@ export class NotesGraph {
 			alert("Got error trying to update contents");
 		}
 		
-		const note_ref = this.mustGetNote(note_id);
+		const note_ref = mustGetNote(note_id);
 		note_ref.value.contents = contents;
-		this.applyRelDeltas(note_ref.value, modified, rel_deltas);
+		applyRelDeltas(note_ref.value, modified, rel_deltas);
 		note_ref.value = Object.assign({}, note_ref.value);
 	}
 
-	applyRelDeltas(source_note:Note, created: Date, rel_deltas:EditRel[]) {
+	function applyRelDeltas(source_note:Note, created: Date, rel_deltas:EditRel[]) {
 		const source = source_note.id;
 		rel_deltas.forEach( d => {
 			const rel = {
@@ -266,7 +267,7 @@ export class NotesGraph {
 			};
 			if( d.action === 'add' ) {
 				source_note.relations.push(rel);
-				const target_note = this.getNote(d.note_id);
+				const target_note = getNote(d.note_id);
 				if( target_note ) {
 					addRelation(target_note, rel);
 				}
@@ -275,7 +276,7 @@ export class NotesGraph {
 				const i = source_note.relations.findIndex( r => relationEqual(r, rel));
 				if( i == -1 ) throw new Error("unable to find relation to remove");
 				source_note.relations.splice(i, 1);
-				const target_note = this.getNote(d.note_id);
+				const target_note = getNote(d.note_id);
 				if( target_note ) {
 					removeRelation(target_note, rel);
 				}
@@ -284,8 +285,8 @@ export class NotesGraph {
 	}
 
 	// Threads..
-	async getThreads() {
-		const resp = await fetch('/api/threads/'+this.context_id.value);
+	async function getThreads() {
+		const resp = await fetch('/api/threads/'+context_id.value);
 		if( !resp.ok ) throw new Error("fetch not OK");
 		const data = <any[]>await resp.json();
 		const temp_threads :Map<number,Thread> = new Map;
@@ -305,18 +306,30 @@ export class NotesGraph {
 			const p = temp_threads.get(t.parent);
 			p?.children.push(t);
 		});
-		this.threads.value = temp_threads;
+		threads.value = temp_threads;
 	}
 
-	getThread(id:number) :Thread|undefined {
-		return this.threads.value.get( id );
+	function getThread(id:number) :Thread|undefined {
+		return threads.value.get( id );
 	}
-	mustGetThread(id:number) :Thread {
-		const t = this.getThread(id);
+	function mustGetThread(id:number) :Thread {
+		const t = getThread(id);
 		if( !t ) throw new Error("could not find thread "+id);
 		return t;
 	}
-}
+
+	return {
+		context_thread, setContext,
+		selected_threads, expanded_threads,
+		sorted_notes,
+		search_term, setSearchTerm,
+		getNote, mustGetNote, lazyGetNote, getLoadNote,
+		updateNote, createNote,
+		getMoreNotes,
+		getThread, mustGetThread,
+		selectThread, deselectThread, toggleExpandedThread
+	}
+});
 
 function relationFromRaw(r:any) :Relation {
 	const label = typedLabel(r.label);

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import {computed, watch, ref, onUpdated, nextTick} from 'vue';
 import type {Ref} from 'vue';
-
-import {notes_graph} from '../main';
+import { useNotesGraphStore } from '../models/graph';
 import type {Note} from '../models/graph';
 
 import NoteUI from './Note.vue';
+
+const notesStore = useNotesGraphStore();
 
 type StackItem = {
 	note: Ref<Note>,
@@ -19,7 +20,7 @@ type StackItem = {
 
 const stack = computed( () => {
 	let prev :StackItem|undefined;
-	return notes_graph.sorted_notes.value.map( n => {
+	return notesStore.sorted_notes.map( n => {
 
 		const date = n.value.created.toLocaleDateString();
 		const show_date = !prev || prev.date !== date;
@@ -28,7 +29,7 @@ const stack = computed( () => {
 		const show_thread = !is_root && (!prev || show_date || prev.note.value.thread !== n.value.thread);
 		let thread = '';
 		if( show_thread ) {
-			const t = notes_graph.getThread(n.value.thread);
+			const t = notesStore.getThread(n.value.thread);
 			if( t ) thread = t.contents;
 			else thread = '[thread not loaded]';
 		}
@@ -39,7 +40,7 @@ const stack = computed( () => {
 				return r.label === 'thread-out' && r.source === n.value.id;
 			});
 			if( rel ) {
-				notes_graph.getLoadNote(rel.target).then( n => {
+				notesStore.getLoadNote(rel.target).then( n => {
 					parent.value = n.value.contents;
 				});
 			}
@@ -90,7 +91,7 @@ async function loadMoreNotes() {
 		window.scrollTo({top:window.scrollY+shift}); 
 	});
 
-	await notes_graph.getMoreNotes();
+	await notesStore.getMoreNotes();
 }
 
 onUpdated( () => {
@@ -104,7 +105,7 @@ onUpdated( () => {
 	});
 });
 
-const no_notes = computed( () => notes_graph.sorted_notes.value.length === 0 );
+const no_notes = computed( () => notesStore.sorted_notes.length === 0 );
 
 // Icons from:
 // https://fontawesomeicons.com/svg/icons/git-commit-line
