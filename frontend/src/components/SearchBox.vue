@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref, Ref } from 'vue';
-import { usePageControlStore } from '../page_control';
+import { useUIStateStore } from '../models/ui_state';
 import { useSearchControlStore } from '../search';
 
-const pageStore = usePageControlStore();
+const uiStateStore = useUIStateStore();
 const searchStore = useSearchControlStore();
 
 const input_elem :Ref<HTMLInputElement|undefined> = ref(); 
@@ -13,7 +13,7 @@ onMounted( () => {
 
 function closeSearch() {
 	searchStore.cur_search = '';
-	pageStore.hideSearch();
+	uiStateStore.hideSearch();
 }
 
 </script>

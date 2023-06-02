@@ -3,9 +3,11 @@ import {computed, watch, ref, onUpdated, nextTick} from 'vue';
 import type {Ref} from 'vue';
 import { useNotesGraphStore } from '../models/graph';
 import type {Note} from '../models/graph';
+import { useThreadsStore } from '../models/threads';
 
 import NoteUI from './Note.vue';
 
+const threadsStore = useThreadsStore();
 const notesStore = useNotesGraphStore();
 
 type StackItem = {
@@ -29,8 +31,8 @@ const stack = computed( () => {
 		const show_thread = !is_root && (!prev || show_date || prev.note.value.thread !== n.value.thread);
 		let thread = '';
 		if( show_thread ) {
-			const t = notesStore.getThread(n.value.thread);
-			if( t ) thread = t.contents;
+			const t = threadsStore.getThread(n.value.thread);
+			if( t ) thread = t.name;
 			else thread = '[thread not loaded]';
 		}
 
@@ -58,6 +60,89 @@ const stack = computed( () => {
 		prev = s;
 		return s;
 	});
+});
+
+
+type SubThread = {
+	hint: string,
+	first: Note,
+	last: Note
+}
+type SubThreadNote = {
+	subthread: SubThread | undefined,
+	show_thread: boolean,
+	thread: string,
+	note: Note,
+	sub_pause: boolean,
+	sub_unpause: boolean
+}
+
+// Let's try something new....
+const sub_threaded = computed( () => {
+	const sub_threads :SubThread[] = [];
+	let cur_sub_thread : SubThread | undefined;
+	let sub_unpause = false;
+	const ret :SubThreadNote[] = [];
+	notesStore.sorted_notes.forEach( n => {
+		let show_thread = true;
+		sub_unpause = false;
+		let subthread_continues = false;
+		const reply_to = n.value.relations.find( r => r.label === 'in-reply-to' )?.target;
+		if( cur_sub_thread && cur_sub_thread.last.id === reply_to ) {
+			if( n.value.thread === cur_sub_thread.last.thread ) show_thread = false;
+			cur_sub_thread.last = n.value;
+			subthread_continues = true;
+		}
+		else if( reply_to === undefined ) {
+			// cur_sub_thread = { 
+			// 	hint: n.value.contents.substring(0, 40),
+			// 	first: n.value,
+			// 	last: n.value
+			// }
+			// sub_threads.push(cur_sub_thread);
+			cur_sub_thread = undefined;
+		}
+		else {
+			cur_sub_thread = sub_threads.find( t => t.last.id === reply_to );
+			if( cur_sub_thread ) {
+				cur_sub_thread.last = n.value;
+				sub_unpause = true;
+			}
+			else {
+				cur_sub_thread = { 
+					hint: n.value.contents.substring(0, 40),
+					first: n.value,
+					last: n.value
+				}
+				const first = ret.find( s => s.note.id === reply_to );
+				if( first ) {
+					cur_sub_thread.first = first.note;
+					first.subthread = cur_sub_thread;
+				}
+				sub_threads.push(cur_sub_thread);
+			}
+		}
+
+		if( !subthread_continues && ret.length !== 0 ) ret[ret.length -1].sub_pause = true;
+
+		let thread = "";
+		if( show_thread ) {
+			const t = threadsStore.getThread(n.value.thread);
+			if( t ) thread = t.name;
+			else thread = '[thread not loaded]';
+		}
+
+		ret.push( {
+			subthread: cur_sub_thread,
+			note: n.value,
+			show_thread,
+			thread,
+			sub_pause: false,
+			sub_unpause
+		} );
+	});
+
+	return ret;
 });
 
 let loading = false;

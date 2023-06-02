@@ -54,7 +54,7 @@ function removeRel(d:EditRel) {
 
 <template>
 	<div v-if="noteEditorStore.has_data" class="p-2 bg-white border-t-2">
-		<p v-if="noteEditorStore.thread" class="italic text-amber-800 max-w-prose whitespace-nowrap overflow-clip">Thread: {{noteEditorStore.thread.contents}}</p>
+		<p v-if="noteEditorStore.thread" class="italic text-amber-800 max-w-prose whitespace-nowrap overflow-clip">Thread: {{noteEditorStore.thread.name}}</p>
 		<ul>
 			<li v-for="d in rels" class="flex flex-nowrap">
 				<RelationIcon :label="d.label" class="h-5 w-5 flex-shrink-0"></RelationIcon>

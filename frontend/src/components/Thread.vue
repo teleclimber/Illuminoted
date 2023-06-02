@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import {ref, computed, watch} from 'vue';
 import { useNotesGraphStore } from '../models/graph';
+import { useUIStateStore } from '../models/ui_state';
 
 import ThreadUI from './Thread.vue';
-import type {Thread} from '../models/graph';
+import type {Thread} from '../models/threads';
 
+const uiStateStore = useUIStateStore();
 const notesStore = useNotesGraphStore();
 
 const props = defineProps<{
@@ -14,24 +16,24 @@ const props = defineProps<{
 
 const show_full = ref(false);
 
-const data_sel_value = computed( () => notesStore.selected_threads.has(props.thread.id) );
+const data_sel_value = computed( () => uiStateStore.selected_threads.has(props.thread.id) );
 const sel_input_value = ref(data_sel_value.value);
 watch( sel_input_value, (new_val) => {
-	if( new_val ) notesStore.selectThread(props.thread.id);
-	else notesStore.deselectThread(props.thread.id);
+	if( new_val ) uiStateStore.selectThread(props.thread.id);
+	else uiStateStore.deselectThread(props.thread.id);
 });
 watch( data_sel_value, (new_val) => sel_input_value.value = new_val);
 
 const has_children = computed( () => props.thread.children.length === 0 );
 const show_children = computed( () => {
-	return notesStore.expanded_threads.has(props.thread.id);
+	return uiStateStore.expanded_threads.has(props.thread.id);
 });
 </script>
 
 <template>
 	<div class="border-blue-500 pl-4" :class="{'border-l': false && !props.is_root}">
 		<div class="py-1 flex cursor-pointer hover:bg-yellow-50" >
-			<div class="pr-2" :class="{'text-gray-400':has_children}" @click="notesStore.toggleExpandedThread(props.thread.id)">
+			<div class="pr-2" :class="{'text-gray-400':has_children}" @click="uiStateStore.toggleExpandedThread(props.thread.id)">
 				<svg v-if="show_children" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
 				</svg>
@@ -44,7 +46,7 @@ const show_children = computed( () => {
 			</div>
 
 			<div class="flex-grow flex flex-col" @click="show_full = !show_full">
-				<div class="">{{props.thread.contents}}</div>
+				<div class="">{{props.thread.name}}</div>
 				<div class="flex">
 					<div class="text-gray-500  ">{{props.thread.created.toLocaleDateString()}}</div>
 					<a :href="'/'+thread.id" class="px-2">

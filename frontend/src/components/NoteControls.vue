@@ -2,19 +2,21 @@
 import {ref, computed, ComputedRef, Ref } from 'vue';
 import { useNotesGraphStore } from '../models/graph';
 import { useNoteEditorStore } from '../note_editor';
-import { usePageControlStore } from '../page_control';
+import { useUIStateStore } from '../models/ui_state';
 
 import type {Note} from '../models/graph';
 import LazyNoteHint from './LazyNoteHint.vue';
 import RelationIcon from './RelationIcon.vue';
+import { useThreadsStore } from '../models/threads';
 
 const notesStore = useNotesGraphStore();
+const threadsStore = useThreadsStore();
 const noteEditorStore = useNoteEditorStore();
-const pageStore = usePageControlStore();
+const uiStateStore = useUIStateStore();
 
 const note = computed( () => {
-	if( !pageStore.selected_note_id ) return undefined;
-	const n = notesStore.getNote(pageStore.selected_note_id);
+	if( !uiStateStore.selected_note_id ) return undefined;
+	const n = notesStore.getNote(uiStateStore.selected_note_id);
 	if( n ) return n.value;
 });
 
@@ -37,7 +39,7 @@ const note = computed( () => {
 
 const thread = computed( () => {
 	if( !note.value ) return undefined;
-	return notesStore.getThread(note.value.thread);
+	return threadsStore.getThread(note.value.thread);
 });
 
 const show = computed( () => note.value && !noteEditorStore.has_data );
@@ -107,19 +109,19 @@ function targetLabel(label:string) :string {
 function appendToThread() {
 	if( !note.value ) return;
 	noteEditorStore.appendToThread(note.value.thread);
-	pageStore.deselectNote();
+	uiStateStore.deselectNote();
 }
 
 function threadOut() {
 	if( !note.value ) return;
 	noteEditorStore.threadOut(note.value.id, note.value.thread);
-	pageStore.deselectNote();
+	uiStateStore.deselectNote();
 }
 
 function editNote() {
 	if( !note.value ) return;
 	noteEditorStore.editNote(note.value.id);
-	pageStore.deselectNote();
+	uiStateStore.deselectNote();
 }
 
 const expand_thread = ref(false);
@@ -129,20 +131,20 @@ const expand_thread = ref(false);
 <template>
 	<div v-if="show" class="p-2 bg-white border-t-2">
 		<div v-if="rels.parent" class="flex flex-nowrap" :class="{'h-auto':expand_thread}"
-			@click="pageStore.scrollToNote(rels.parent?.note_id)">
+			@click="uiStateStore.scrollToNote(rels.parent?.note_id)">
 			<RelationIcon :label="rels.parent.label" class="h-5 w-5 flex-shrink-0"></RelationIcon>
 			<span class="flex-shrink-0">{{sourceLabel(rels.parent.label)}}:</span>
 			<LazyNoteHint :note="rels.parent.note" class="flex-shrink"></LazyNoteHint>
 		</div>
-		<div v-if="thread" class="italic text-amber-800 h-6 overflow-y-hidden" :class="{'h-auto':expand_thread}" @click.stop.prevent="expand_thread = !expand_thread">Thread: {{thread.contents}}</div>
+		<div v-if="thread" class="italic text-amber-800 h-6 overflow-y-hidden" :class="{'h-auto':expand_thread}" @click.stop.prevent="expand_thread = !expand_thread">Thread: {{thread.name}}</div>
 		<div v-for="r in rels.sources" class="flex flex-nowrap"
-			@click="pageStore.scrollToNote(r.note_id)">
+			@click="uiStateStore.scrollToNote(r.note_id)">
 			<RelationIcon :label="r.label" class="h-5 w-5 flex-shrink-0"></RelationIcon>
 			<span class="flex-shrink-0">{{sourceLabel(r.label)}}:</span>
 			<LazyNoteHint :note="r.note" class="flex-shrink"></LazyNoteHint>
 		</div>
 		<div v-for="r in rels.targets" class="flex flex-nowrap"
-			@click="pageStore.scrollToNote(r.note_id)">
+			@click="uiStateStore.scrollToNote(r.note_id)">
 			<RelationIcon :label="r.label" class="h-5 w-5 mr-1 flex-shrink-0"></RelationIcon>
 			<span class="flex-shrink-0">{{targetLabel(r.label)}}:</span>
 			<LazyNoteHint :note="r.note" class="flex-shrink"></LazyNoteHint>

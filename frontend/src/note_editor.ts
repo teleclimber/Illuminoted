@@ -3,11 +3,12 @@ import type {Ref} from 'vue';
 import { defineStore } from 'pinia';
 
 import { useNotesGraphStore } from './models/graph';
-
 import {EditRel, typedLabel} from './models/graph';
+import { useThreadsStore } from './models/threads';
 
 export const useNoteEditorStore = defineStore('note-editor', () => {
 	const notesStore = useNotesGraphStore();
+	const threadsStore = useThreadsStore();
 
 	const edit_note_id: Ref<number|undefined> = ref();
 	const thread_id: Ref<number|undefined> = ref();
@@ -15,7 +16,7 @@ export const useNoteEditorStore = defineStore('note-editor', () => {
 
 	const thread = computed( () => {
 		if( thread_id.value === undefined ) return undefined;
-		return notesStore.mustGetThread(thread_id.value);
+		return threadsStore.mustGetThread(thread_id.value);
 	});
 
 	const has_data = computed( () => {

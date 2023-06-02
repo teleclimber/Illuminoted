@@ -1,9 +1,11 @@
-import {ref, computed} from 'vue';
-import type {Ref} from 'vue';
+import {computed, ref, shallowRef, reactive} from 'vue';
+import type {Ref, ComputedRef} from 'vue';
 import { defineStore } from 'pinia';
-import { useNotesGraphStore } from './models/graph';
+import { useNotesGraphStore } from './graph';
 
-export const usePageControlStore = defineStore('page-control', () => {
+export const useUIStateStore = defineStore('ui-state', () => {
+	const notesStore = useNotesGraphStore();
+
 	const show_threads = ref(false);
 
 	function showThreads() {
@@ -27,9 +29,12 @@ export const usePageControlStore = defineStore('page-control', () => {
 	const _context_id = ref(1);
 	function setContext(id:number) {
 		_context_id.value = id;
-		const notesStore = useNotesGraphStore();
+		selected_threads.add(id);
 		notesStore.setContext(id);
 	}
+	const context_id = computed( () => {
+		return _context_id.value;
+	});
 
 	// we sould probably use native keyboard shortcuts to do note selection?
 	// although that won't work with touch-only devices.
@@ -43,7 +48,7 @@ export const usePageControlStore = defineStore('page-control', () => {
 		selected_note_id.value = undefined;
 	}
 
-	// TODO add and edit note should go through Page Control as well.
+	// TODO add and edit note should go through UI State as well.
 
 	function scrollToNote(note_id:number|undefined) {
 		if( !note_id ) return;	// allows simpler code in templates
@@ -51,11 +56,32 @@ export const usePageControlStore = defineStore('page-control', () => {
 		document.querySelector('#stack-note-'+note_id)?.scrollIntoView();
 	}
 
+
+	const selected_threads :Set<number> = reactive(new Set);	// set of thread_ids for which we want to show notes
+	const expanded_threads :Set<number> = reactive(new Set);	// set of thread_ids for which we show the children
+
+	function selectThread(id:number) {
+		selected_threads.add(id);
+		notesStore.reloadNotes();
+	}
+	function deselectThread(id:number) {
+		selected_threads.delete(id);
+		notesStore.reloadNotes();
+	}
+
+	function toggleExpandedThread(id:number) {
+		if( expanded_threads.has(id) ) expanded_threads.delete(id);
+		else expanded_threads.add(id);
+	}
+
 	return {
-		setContext,
+		selected_threads, expanded_threads,
+		selectThread, deselectThread, toggleExpandedThread,
+		setContext, context_id,
 		show_threads, showThreads, hideThreads,
 		show_search, showSearch, hideSearch,
 		selected_note_id, selectNote, deselectNote,
 		scrollToNote
 	}
+
 });

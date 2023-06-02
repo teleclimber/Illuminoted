@@ -2,7 +2,7 @@
 import {computed, toRefs, Ref} from 'vue';
 import { useNotesGraphStore } from '../models/graph';
 import { useNoteEditorStore } from '../note_editor';
-import { usePageControlStore } from '../page_control';
+import { useUIStateStore } from '../models/ui_state';
 
 import type {Note} from '../models/graph';
 
@@ -11,7 +11,7 @@ import RelationIcon from './RelationIcon.vue';
 
 const notesStore = useNotesGraphStore();
 const noteEditorStore = useNoteEditorStore();
-const pageStore = usePageControlStore();
+const uiStateStore = useUIStateStore();
 
 const props = defineProps<{
 	note: Ref<Note>,
@@ -74,7 +74,7 @@ const contents = computed( () => {
 	return ret;
 });
 
-const selected = computed( () => pageStore.selected_note_id === note.value.id );
+const selected = computed( () => uiStateStore.selected_note_id === note.value.id );
 
 const relations = computed( () => {
 	const note_id = note.value.id;
@@ -112,7 +112,7 @@ const classes = computed( () => {
 </script>
 
 <template>
-	<div class="flex flex-col md:flex-row" :class="classes" :id="'stack-note-'+note.id" @click="pageStore.selectNote(note.id)">
+	<div class="flex flex-col md:flex-row" :class="classes" :id="'stack-note-'+note.id" @click="uiStateStore.selectNote(note.id)">
 		<div class="flex-shrink-0 text-gray-500 md:w-28">{{note.created.toLocaleTimeString()}}</div>
 		<div class="md:border-l-2 md:pl-1 border-amber-700 flex-grow md:pb-1" >
 			<p class="">

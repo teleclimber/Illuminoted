@@ -247,34 +247,41 @@ export type DBThread = {
 	created: Date
 }
 
-export function getThreads(params :{root:number}) :DBThread[] {
-	const db = getDB();
-	const sel = `WITH RECURSIVE 
-	desc_threads(thread, parent, depth) AS (
-		SELECT :root, NULL, 0 
-		UNION ALL
-		SELECT  relations.source, desc_threads.thread, depth +1 
-			FROM desc_threads
-			JOIN notes ON desc_threads.thread = notes.thread
-			JOIN relations ON notes.id = relations.target
-			WHERE relations.label = 'thread-out'
-			)
-	SELECT desc_threads.thread, desc_threads.parent, desc_threads.depth,
-	root.contents, root.created 
-	FROM desc_threads
-	JOIN notes AS root ON root.id = desc_threads.thread`
+// TODO update this with new thread table!! 
+// prob still use recursive, but should be simpler?
+// export function getThreads(params :{root:number}) :DBThread[] {
+// 	const db = getDB();
+// 	const sel = `WITH RECURSIVE 
+// 	desc_threads(thread, parent, depth) AS (
+// 		SELECT :root, NULL, 0 
+// 		UNION ALL
+// 		SELECT  relations.source, desc_threads.thread, depth +1 
+// 			FROM desc_threads
+// 			JOIN notes ON desc_threads.thread = notes.thread
+// 			JOIN relations ON notes.id = relations.target
+// 			WHERE relations.label = 'thread-out'
+// 			)
+// 	SELECT desc_threads.thread, desc_threads.parent, desc_threads.depth,
+// 	root.contents, root.created 
+// 	FROM desc_threads
+// 	JOIN notes AS root ON root.id = desc_threads.thread`
 
-	const thread_notes = <any> db.queryEntries( sel, params );
+// 	const thread_notes = <any> db.queryEntries( sel, params );
 	
-	const ret :DBThread[] = thread_notes.map( (tn:any) => {
-		const ret :DBThread = {
-			thread: tn.thread,
-			parent: tn.parent,
-			contents: tn.contents,
-			created: tn.created
-		}
-		return ret;
-	});
+// 	const ret :DBThread[] = thread_notes.map( (tn:any) => {
+// 		const ret :DBThread = {
+// 			thread: tn.thread,
+// 			parent: tn.parent,
+// 			contents: tn.contents,
+// 			created: tn.created
+// 		}
+// 		return ret;
+// 	});
 
-	return ret;
+// 	return ret;
+// }
+
+export function getAllThreads() :DBThread[] {
+	const db = getDB();
+	return db.queryEntries<DBThread>('SELECT * FROM threads');
 }

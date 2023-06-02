@@ -1,6 +1,7 @@
 import {computed, ref, shallowRef, reactive} from 'vue';
 import type {Ref, ComputedRef} from 'vue';
 import { defineStore } from 'pinia';
+import { useUIStateStore } from './ui_state';
 
 export type RelationLabel = 'thread-out' | 'in-reply-to' | 'see-also';
 export const rel_labels :RelationLabel[] = ['thread-out', 'in-reply-to', 'see-also'];
@@ -39,38 +40,20 @@ export type Thread = {
 }
 
 export const useNotesGraphStore = defineStore('notes-graph', () => {
+	const uiStateStore = useUIStateStore();
 
 	const context_id = ref(1);
 	let loaded_from = '';
 
 	const search_term = ref('');
 
-	const threads :Ref<Map<number,Thread>> = shallowRef(new Map); 
 	const notes :Ref<Map<number,Ref<Note>>> = shallowRef(new Map);
-
-	const selected_threads :Set<number> = reactive(new Set);	// set of thread_ids for which we want to show notes
-	const expanded_threads :Set<number> = reactive(new Set);	// set of thread_ids for which we show the children
-
-	const context_thread = computed( () => {
-		return getThread(context_id.value);
-	});
 
 	function setContext(id:number) {
 		context_id.value = id;
-		threads.value = new Map;
 		loaded_from = '';
-		selected_threads.add(id);
-		getThreads();
 	}
 
-	function selectThread(id:number) {
-		selected_threads.add(id);
-		reloadNotes();
-	}
-	function deselectThread(id:number) {
-		selected_threads.delete(id);
-		reloadNotes();
-	}
 	function reloadNotes() {
 		notes.value = new Map;
 		loaded_from = '';
@@ -84,15 +67,10 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 		search_timeout = setTimeout( () => reloadNotes(), 150 );
 	}
 
-	function toggleExpandedThread(id:number) {
-		if( expanded_threads.has(id) ) expanded_threads.delete(id);
-		else expanded_threads.add(id);
-	}
-
 	async function getMoreNotes() {
 		const resp = await fetch('/api/notes/?'
 			+ new URLSearchParams({
-				threads: Array.from(selected_threads).join(','),
+				threads: Array.from(uiStateStore.selected_threads).join(','),
 				date: loaded_from,
 				search: search_term.value
 			}));
@@ -200,24 +178,25 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 
 		applyRelDeltas(new_note, created, rel_deltas);
 
-		if( thread_out ) {
-			// have to create the thread, add it, and select it.
-			const ref_note = mustGetNote(thread_out.note_id);
-			const parent_thread = mustGetThread(ref_note.value.thread);
-			const new_thread :Thread = {
-				id: new_id,
-				contents,
-				created,
-				parent: parent_thread.id,
-				children: []
-			}
-			parent_thread.children.push(new_thread);
-			const temp_threads = new Map(threads.value);
-			temp_threads.set(new_id, new_thread);
-			threads.value = temp_threads;
+		// TODO rethinnk how we "thread-out"!
+		// if( thread_out ) {
+		// 	// have to create the thread, add it, and select it.
+		// 	const ref_note = mustGetNote(thread_out.note_id);
+		// 	const parent_thread = mustGetThread(ref_note.value.thread);
+		// 	const new_thread :Thread = {
+		// 		id: new_id,
+		// 		contents,
+		// 		created,
+		// 		parent: parent_thread.id,
+		// 		children: []
+		// 	}
+		// 	parent_thread.children.push(new_thread);
+		// 	const temp_threads = new Map(threads.value);
+		// 	temp_threads.set(new_id, new_thread);
+		// 	threads.value = temp_threads;
 
-			selected_threads.add(new_id);	// by default the newly created thread is selected
-		}
+		// 	selected_threads.add(new_id);	// by default the newly created thread is selected
+		// }
 
 		const temp_notes = new Map(notes.value);
 		temp_notes.set(new_id, shallowRef(new_note));
@@ -284,50 +263,14 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 		});
 	}
 
-	// Threads..
-	async function getThreads() {
-		const resp = await fetch('/api/threads/'+context_id.value);
-		if( !resp.ok ) throw new Error("fetch not OK");
-		const data = <any[]>await resp.json();
-		const temp_threads :Map<number,Thread> = new Map;
-		data.forEach( raw => {
-			const id = parseInt(raw.thread);
-			temp_threads.set(id, {
-				id,
-				contents: raw.contents+'',
-				created: new Date(raw.created),
-				parent: raw.parent,
-				children: []
-			});
-		});
-
-		temp_threads.forEach( t => {
-			if(!t.parent) return;
-			const p = temp_threads.get(t.parent);
-			p?.children.push(t);
-		});
-		threads.value = temp_threads;
-	}
-
-	function getThread(id:number) :Thread|undefined {
-		return threads.value.get( id );
-	}
-	function mustGetThread(id:number) :Thread {
-		const t = getThread(id);
-		if( !t ) throw new Error("could not find thread "+id);
-		return t;
-	}
-
 	return {
-		context_thread, setContext,
-		selected_threads, expanded_threads,
+		setContext,
 		sorted_notes,
 		search_term, setSearchTerm,
 		getNote, mustGetNote, lazyGetNote, getLoadNote,
 		updateNote, createNote,
 		getMoreNotes,
-		getThread, mustGetThread,
-		selectThread, deselectThread, toggleExpandedThread
+		reloadNotes
 	}
 });
 

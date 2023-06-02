@@ -1,11 +1,12 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia'
-import { usePageControlStore } from './page_control';
+import { useUIStateStore } from './models/ui_state';
 
 const pinia = createPinia();
 
 import App from './App.vue';
 import './index.css';
+import { useThreadsStore } from './models/threads';
 
 const app = createApp(App);
 app.use(pinia);
@@ -16,5 +17,7 @@ const p = window.location.pathname.substring(1);
 if( p ) {
 	context_thread = Number(p);
 }
-const pageStore = usePageControlStore();
-pageStore.setContext(context_thread);
+const uiStateStore = useUIStateStore();
+uiStateStore.setContext(context_thread);
+
+useThreadsStore().getAllThreads();
