@@ -16,7 +16,7 @@ export default function createRoutes() {
 	r.add("post", "/api/notes", authorizedOnly, postNote);
 	r.add("patch", "/api/notes/:id", authorizedOnly, patchNote);
 
-	r.add("get", "/api/threads/", authorizedOnly, getThreads);
+	r.add("get", "/api/threads/:id", authorizedOnly, getThreads);
 	
 	// users:
 	r.add("get", "/api/current-user", authorizedOnly, getCurrentUser)

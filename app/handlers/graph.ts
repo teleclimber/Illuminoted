@@ -21,7 +21,7 @@
 // create handler that gets and returns notes and relations for a... time period?
 
 import { Context } from 'https://deno.land/x/dropserver_app@v0.2.1/mod.ts';
-import {getNotesByDate, getAllThreads as dbGetThreads} from '../db.ts';
+import {getNotesByDate, getThreadSubtree, getDescThreadsLastActive, getThreadChildrenLastActive} from '../db.ts';
 import type {DBNote, DBThread, DBRelation} from '../db.ts';
 
 export async function getNotes(ctx:Context) {
@@ -50,14 +50,20 @@ export async function getNotes(ctx:Context) {
 }
 
 export async function getThreads(ctx:Context) {
-	//if( ctx.params.root === undefined ) throw new Error("no root parameter");
-	//const root = parseInt(ctx.params.root+'');
+	if( ctx.params.id === undefined ) throw new Error("no root parameter");
+	const root = parseInt(ctx.params.id+'');
+	const search = ctx.url.searchParams;
+	const deep = search.has("deep"); // .get('deep')
+	const limit = Number(search.get("limit"));
+	
 	let ret :DBThread[];
-	try {
-		ret = await dbGetThreads()
-	} catch(e) {
-		ctx.respondStatus(500, e);
-		throw e;
+	if( deep ) {
+		const thread_actives = getDescThreadsLastActive(root, limit);
+		ret = getThreadSubtree(root, thread_actives.map( a => a.thread));
+	}
+	else {
+		const thread_actives = getThreadChildrenLastActive(root, limit);
+		ret = getThreadSubtree(root, thread_actives.map( a => a.thread));	// why do you need the subtree?
 	}
 
 	ctx.respondWith(Response.json(ret));

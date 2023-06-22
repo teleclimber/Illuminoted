@@ -1,5 +1,5 @@
 import app from './app.ts';
-import { DB } from "https://deno.land/x/sqlite@v3.4.0/mod.ts";
+import { DB } from "https://deno.land/x/sqlite@v3.7.2/mod.ts";
 
 const dbFilename = "notes.db";
 let db :DB|undefined;
@@ -241,47 +241,100 @@ AND follower.label IS NULL
 */
 
 export type DBThread = {
-	thread: number,
-	parent: number,
-	contents: string,
-	created: Date
+	id: number,
+	name: string,
+	parent_id: number | null,
+	created: Date,
+	num_children: number
 }
 
-// TODO update this with new thread table!! 
-// prob still use recursive, but should be simpler?
-// export function getThreads(params :{root:number}) :DBThread[] {
-// 	const db = getDB();
-// 	const sel = `WITH RECURSIVE 
-// 	desc_threads(thread, parent, depth) AS (
-// 		SELECT :root, NULL, 0 
-// 		UNION ALL
-// 		SELECT  relations.source, desc_threads.thread, depth +1 
-// 			FROM desc_threads
-// 			JOIN notes ON desc_threads.thread = notes.thread
-// 			JOIN relations ON notes.id = relations.target
-// 			WHERE relations.label = 'thread-out'
-// 			)
-// 	SELECT desc_threads.thread, desc_threads.parent, desc_threads.depth,
-// 	root.contents, root.created 
-// 	FROM desc_threads
-// 	JOIN notes AS root ON root.id = desc_threads.thread`
-
-// 	const thread_notes = <any> db.queryEntries( sel, params );
-	
-// 	const ret :DBThread[] = thread_notes.map( (tn:any) => {
-// 		const ret :DBThread = {
-// 			thread: tn.thread,
-// 			parent: tn.parent,
-// 			contents: tn.contents,
-// 			created: tn.created
-// 		}
-// 		return ret;
-// 	});
-
-// 	return ret;
-// }
-
-export function getAllThreads() :DBThread[] {
+// get descendants of thread, by deep-last-active
+export function getDescThreadsLastActive(root: number, limit: number) :{thread: number, last:Date}[] {
 	const db = getDB();
-	return db.queryEntries<DBThread>('SELECT * FROM threads');
+	const q = db.prepareQuery<never,{thread: number, last:Date}, {root:number, limit: number}>(`
+	WITH RECURSIVE 
+	desc_threads(id) AS (
+		SELECT :root 
+		UNION ALL
+		SELECT threads.id
+			FROM desc_threads
+			JOIN threads ON desc_threads.id = threads.parent_id
+		)
+	SELECT notes.thread, max(created) AS "last" 
+		FROM desc_threads 
+		JOIN notes ON notes.thread = desc_threads.id
+		GROUP BY notes.thread ORDER BY max(created) DESC LIMIT :limit`);
+	const rows = q.allEntries({root, limit});
+	q.finalize();
+	return rows;
+}
+
+// get children of thread, by deep-last-active
+export function getThreadChildrenLastActive(root: number, limit: number) :{thread: number, last:Date}[] {
+	const db = getDB();
+	const q = db.prepareQuery<never,{thread: number, last:Date}, {root:number, limit:number}>(`
+	WITH RECURSIVE 
+	desc_threads(id) AS (
+		SELECT :root
+		UNION ALL
+		SELECT threads.id
+			FROM desc_threads
+			JOIN threads ON desc_threads.id = threads.parent_id
+		)
+	SELECT notes.thread, max(notes.created) AS "last" 
+		FROM desc_threads 
+		JOIN notes ON notes.thread = desc_threads.id
+		JOIN threads ON desc_threads.id = threads.id
+		WHERE threads.parent_id = :root
+		GROUP BY notes.thread ORDER BY max(notes.created) DESC LIMIT :limit`);
+	const rows = q.allEntries({root, limit});
+	q.finalize();
+	return rows;
+}
+
+// getThreadSubtree returns all threads necessary to display 
+// the tree of threads from root to each leaf
+export function getThreadSubtree(root: number, leaves: number[]) :DBThread[] {
+	const threads :DBThread[] = [...leaves, root].map( l => {
+		return {
+			id: l,
+			parent_id: null,
+			name: "",
+			created: new Date,
+			num_children: 0
+		}
+	});
+
+	for( let i=0; i< threads.length; ++i) {
+		const thread = threads[i];
+		if( !thread.parent_id ) {
+			// load it
+			const thread_data = getThread(thread.id)
+			Object.assign(thread, thread_data);
+			if( thread.parent_id && thread.parent_id !== root && !threads.find(t => t.id === thread.parent_id) ) {
+				threads.push({
+					id: thread.parent_id,
+					parent_id: null,
+					name: "",
+					created: new Date,
+					num_children: 0
+				});
+			}
+		}
+	}
+
+	return threads;
+}
+
+function getThread(id: number) :DBThread {
+	const db = getDB();
+	const q = db.prepareQuery<never,DBThread,{id:number}>(`
+		SELECT threads.id, threads.name, threads.parent_id, threads.created,
+		(SELECT count(*) FROM threads WHERE threads.parent_id = :id) AS num_children
+		FROM threads WHERE threads.id = :id
+	`);
+	const row = q.firstEntry({id});
+	if( !row ) throw new Error("missing thread: "+id);
+	q.finalize();
+	return row;
 }

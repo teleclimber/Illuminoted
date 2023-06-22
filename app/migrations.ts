@@ -86,6 +86,9 @@ export default function createMigrations() {
 			});
 		});
 
+		// add index on notes to improve select performance of notes:
+		db.query(`CREATE INDEX notes_thread_created ON notes (thread, created)`);
+
 	});
 	// Make a down-migration:
 	// - continue to use thread out? or some other relation like note-from-parent-thread -> thread 

@@ -73,15 +73,25 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		if( expanded_threads.has(id) ) expanded_threads.delete(id);
 		else expanded_threads.add(id);
 	}
+	function batchExpandThreads(ids:number[]) {
+		ids.forEach( id => expanded_threads.add(id) );
+	}
+
+	// threads panel:
+	const _threads_width = ref(300);
+	const threads_width = computed( () => {
+		return _threads_width.value;
+	});
 
 	return {
 		selected_threads, expanded_threads,
-		selectThread, deselectThread, toggleExpandedThread,
+		selectThread, deselectThread, toggleExpandedThread, batchExpandThreads,
 		setContext, context_id,
 		show_threads, showThreads, hideThreads,
 		show_search, showSearch, hideSearch,
 		selected_note_id, selectNote, deselectNote,
-		scrollToNote
+		scrollToNote,
+		threads_width,
 	}
 
 });

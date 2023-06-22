@@ -20,4 +20,4 @@ if( p ) {
 const uiStateStore = useUIStateStore();
 uiStateStore.setContext(context_thread);
 
-useThreadsStore().getAllThreads();
+uiStateStore.batchExpandThreads( await useThreadsStore().getLatestSubThreads(1, 10) );
