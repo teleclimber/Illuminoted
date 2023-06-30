@@ -1,5 +1,4 @@
-import {computed, ref, shallowRef, reactive} from 'vue';
-import type {Ref, ComputedRef} from 'vue';
+import { reactive } from 'vue';
 import { defineStore } from 'pinia';
 
 export type Thread = {
@@ -33,8 +32,8 @@ export const useThreadsStore = defineStore('threads', () => {
 	}
 	function ingestThread(raw:any) {
 		const id = parseInt(raw.id);
-		let thread = threads.get(id);
-		if( thread ) Object.assign(thread, {
+		let existing = threads.get(id);
+		if( existing ) Object.assign(existing, {
 			id,
 			name: raw.name+'',
 			created: new Date(raw.created),
@@ -50,6 +49,16 @@ export const useThreadsStore = defineStore('threads', () => {
 			});
 		}
 		return id;
+	}
+	function addExternallyCreatedThread(id:number, parent_id: number, name: string, created:Date) {
+		mustGetThread(parent_id).num_children++;	//sporty
+		threads.set(id, {
+			id,
+			name: name+'',
+			created: created,
+			parent: parent_id,
+			num_children: 0	// just created so the assumption is there are no children...
+		});
 	}
 	function getChildren(thread: number) {
 		const ret :Thread[] = [];
@@ -70,6 +79,7 @@ export const useThreadsStore = defineStore('threads', () => {
 
 	return {
 		getLatestSubThreads, loadChildren, getChildren,
+		addExternallyCreatedThread,
 		getThread, mustGetThread
 	};
 

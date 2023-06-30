@@ -1,5 +1,5 @@
 import { Context } from 'https://deno.land/x/dropserver_app@v0.2.1/mod.ts';
-import {createNote, updateContents, createThread, createRelation, deleteRelation, getNoteById, rel_labels} from '../db.ts';
+import {createNote, updateNoteContents, createThread, createRelation, deleteRelation, getNoteById, rel_labels, updateNoteThread} from '../db.ts';
 import type {DBNote, DBRelation, RelationLabel} from '../db.ts';
 
 // is this really interesting?
@@ -22,10 +22,11 @@ export async function getNote(ctx:Context) {
 }
 
 type PostData = {
-	thread_id: number|undefined,	// thread_id is not included if we are threading out
+	thread_id: number,	// thread of note or parent of new thread
 	contents: string,
 	created: Date,
-	rel_deltas: EditRel[]
+	rel_deltas: EditRel[],
+	new_thread_name: string|undefined	// creates a new thread under thread_id
 }
 type EditRel = {
 	action: 'delete' | 'add',
@@ -35,48 +36,56 @@ type EditRel = {
 export async function postNote(ctx:Context) {
     const json = <PostData>await ctx.request.json();
 
-	let id : number;
-	if( json.thread_id ) {
-		id = createNote({contents:json.contents, thread:json.thread_id, created:json.created});
+	let note_id : number;
+	let thread_id = json.thread_id;
+	if( json.new_thread_name ) {
+		thread_id = createThread({parent_id: thread_id, name: json.new_thread_name, created: json.created});
 	}
-	else {
-		const thread_out = json.rel_deltas.find( d => d.label === 'thread-out' );
-		if( !thread_out ) throw new Error("expected a thread_out relation because thread_id was not included");
-		id = createThread({contents:json.contents, created:json.created, parent: thread_out.note_id});
-	}
-
+	
+	note_id = createNote({contents:json.contents, thread:thread_id, created:json.created});
+	
 	json.rel_deltas.forEach( r => {
 		validateRelationLabel(r.label);
 		if(r.action === 'add') {
-			createRelation({source:id, target:r.note_id, label:r.label, created:json.created});
+			createRelation({source:note_id, target:r.note_id, label:r.label, created:json.created});
 		}
 	});
 
-	ctx.respondJson({id});
+	ctx.respondJson({note_id, thread_id});
 }
 
 type PatchData = {
 	note_id: number,
 	contents: string,
 	rel_deltas: EditRel[],
-	modified: Date
+	modified: Date,
+	thread_id: number,
+	new_thread_name: string|undefined	// creates a new thread under thread_id
 }
 export async function patchNote(ctx:Context) {
 	const json = <PatchData>await ctx.request.json();
 	// we should have a transaction here, to allow complete rollback in case of error
 	const note = getNoteById(json.note_id).note;
-	
+
 	const note_time = new Date(note.created).getTime();
 	json.rel_deltas.forEach( d => {
 		validateRelationLabel(d.label);
-		if( d.label === 'thread-out' ) throw new Error("there should not be any changes to thread-out relations");
 		if( d.action === 'add' ) {
 			const target = getNoteById(d.note_id).note;
 			if( new Date(target.created).getTime() > note_time ) throw new Error("target note created after source");
 		}
 	});
+
+	let thread_id = json.thread_id;
+	if( json.new_thread_name ) {
+		thread_id = createThread({parent_id: json.thread_id, name: json.new_thread_name, created: json.modified});
+	}
+
 	if( json.contents ) {
-		updateContents(json.note_id, json.contents);
+		updateNoteContents(json.note_id, json.contents);
+	}
+	if( thread_id !== note.thread ) {
+		updateNoteThread(json.note_id, thread_id);
 	}
 	json.rel_deltas.forEach( r => {
 		if(r.action === 'add') {
@@ -86,7 +95,8 @@ export async function patchNote(ctx:Context) {
 			deleteRelation(json.note_id, r.note_id, r.label);
 		}
 	});
-	ctx.respondStatus(200, "OK");
+
+	ctx.respondJson({thread_id});
 }
 
 function validateRelationLabel(label:RelationLabel) {

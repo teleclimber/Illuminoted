@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {computed} from 'vue';
-import { useNotesGraphStore } from './models/graph';
 import { useThreadsStore } from './models/threads';
 import { useUIStateStore } from './models/ui_state';
+import { useNoteEditorStore } from './note_editor';
 
 import NoteStack from './components/NoteStack.vue';
 import ThreadUI from './components/Thread.vue';
@@ -10,9 +10,9 @@ import NoteControls from './components/NoteControls.vue';
 import NoteEditor from './components/NoteEditor.vue';
 import SearchBox from './components/SearchBox.vue';
 
-const notesStore = useNotesGraphStore();
 const threadsStore = useThreadsStore();
 const uiStateStore = useUIStateStore();
+const noteEditorStore = useNoteEditorStore();
 
 const show_threads = computed( () => uiStateStore.show_threads );
 
@@ -69,11 +69,8 @@ const context_thread = computed( () => {
 
 			<div v-if="!show_threads" class="sticky bottom-0 z-50">
 				<NoteControls></NoteControls>
-				<NoteEditor></NoteEditor>
+				<NoteEditor v-if="noteEditorStore.show"></NoteEditor>
 			</div>
 		</div>
 	
-
-	
-      
 </template>

@@ -1,23 +1,15 @@
-import { reactive, ref, computed, ComputedRef} from 'vue';
+import { reactive, ref, computed } from 'vue';
 import type {Ref} from 'vue';
 import { defineStore } from 'pinia';
 
 import { useNotesGraphStore } from './models/graph';
 import {EditRel, typedLabel} from './models/graph';
-import { useThreadsStore } from './models/threads';
 
 export const useNoteEditorStore = defineStore('note-editor', () => {
 	const notesStore = useNotesGraphStore();
-	const threadsStore = useThreadsStore();
 
+	const show = ref(false);
 	const edit_note_id: Ref<number|undefined> = ref();
-	const thread_id: Ref<number|undefined> = ref();
-	let fallback_thread_id :number|undefined;
-
-	const thread = computed( () => {
-		if( thread_id.value === undefined ) return undefined;
-		return threadsStore.mustGetThread(thread_id.value);
-	});
 
 	const has_data = computed( () => {
 		return !!edit_note_id.value || !!thread_id.value || !!rel_edit.length;
@@ -26,34 +18,45 @@ export const useNoteEditorStore = defineStore('note-editor', () => {
 	const created_time = ref(new Date().getTime());
 
 	// editable refs:
+	const thread_id: Ref<number|undefined> = ref();		// current note's thread or parent thread if creating new thread
+	const create_new_thread = ref(false);
+	const new_thread_name = ref('');
 	const contents = ref('');
 	
 	// relations
 	const rel_edit :EditRel[] = reactive([]);
 
+	// initialiazation functions:
 	function appendToThread(t_id:number) {
+		if( show.value ) return;
 		reset();
 		thread_id.value = t_id;
 		created_time.value = new Date().getTime();
+		show.value = true;
 	}
-	function threadOut(parent_id:number, fallback_thread_id:number) {
+	function threadOut(from_note_id:number) {
+		if( show.value ) return;
 		reset();
-		fallback_thread_id = fallback_thread_id;
+		// get note, then parent thread is note thread.
+		const parent_note = notesStore.mustGetNote(from_note_id);
+		create_new_thread.value = true;
+		thread_id.value = parent_note.value.thread;
 		rel_edit.push({
-			note_id: parent_id,
+			note_id: from_note_id,
 			label: 'thread-out',
 			action: 'add'
 		});
 		created_time.value = new Date().getTime();
+		show.value = true;
 	}
 	function editNote(note_id:number) {
-		// have to get the note
+		if( show.value ) return;
+		reset();
+		
 		const note = notesStore.mustGetNote(note_id).value;
 		edit_note_id.value = note_id;
 
-		if( note.thread !== note.id ) {
-			thread_id.value = note.thread;
-		}
+		thread_id.value = note.thread;
 
 		note.relations.forEach( r => {
 			if( r.source === note.id ) {
@@ -68,13 +71,25 @@ export const useNoteEditorStore = defineStore('note-editor', () => {
 		contents.value = note.contents;
 
 		created_time.value = note.created.getTime();
+		show.value = true;
 	}
 	function reset() {
 		edit_note_id.value = undefined;
 		thread_id.value = undefined;
 		contents.value = "";
 		while(rel_edit.pop()) {};
-		fallback_thread_id = undefined;
+		create_new_thread.value = false;
+		new_thread_name.value = '';
+		show.value = false;
+	}
+
+	function createNewThread() {
+		if( !show.value ) return;	// This should only get called when in the midst of editing a note or creating one
+		create_new_thread.value = true;
+	}
+	function useExistingThread() {
+		if( !show.value ) return;
+		create_new_thread.value = false;
 	}
 
 	function editRelation(note_id:number, l:string, on:boolean) {
@@ -102,6 +117,13 @@ export const useNoteEditorStore = defineStore('note-editor', () => {
 		}
 	}
 
+	const ok_to_save = computed( () => {
+		if( create_new_thread.value && new_thread_name.value === '' ) return false;
+		if( thread_id.value === undefined ) return false;
+		// what else? empty note?
+		return true;
+	});
+
 	async function  saveNote() {
 		contents.value = contents.value.trim();
 		if( contents.value === '' ) {
@@ -110,10 +132,16 @@ export const useNoteEditorStore = defineStore('note-editor', () => {
 		}
 
 		if( edit_note_id.value !== undefined ) {
-			await notesStore.updateNote(edit_note_id.value, contents.value, rel_edit, new Date);
+			if( thread_id.value === undefined ) throw new Error("thread_id should not be false here.");
+			if( create_new_thread.value && new_thread_name.value === '' ) return false;
+			await notesStore.updateNote(edit_note_id.value, thread_id.value, contents.value, rel_edit, new Date,
+				create_new_thread.value ? new_thread_name.value : undefined);
 		}
 		else {
-			await notesStore.createNote(thread_id.value, contents.value, rel_edit, new Date);
+			if( thread_id.value === undefined ) throw new Error("thread_id should not be false here.");
+			if( create_new_thread.value && new_thread_name.value === '' ) return false;
+			await notesStore.createNote(thread_id.value, contents.value, rel_edit, new Date, 
+				create_new_thread.value ? new_thread_name.value : undefined);
 		}
 
 		// if all went well reset
@@ -121,15 +149,17 @@ export const useNoteEditorStore = defineStore('note-editor', () => {
 	}
 
 	return {
+		show,
 		rel_edit,
 		has_data,
 		edit_note_id,
 		created_time,
-		thread, contents, 
+		thread_id, contents, 
 		appendToThread,
 		threadOut,
 		editNote, editRelation,
-		saveNote,
-		reset
+		ok_to_save, saveNote,
+		reset,
+		create_new_thread, createNewThread, useExistingThread, new_thread_name
 	}
 });

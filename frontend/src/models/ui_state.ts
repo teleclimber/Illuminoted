@@ -48,8 +48,6 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		selected_note_id.value = undefined;
 	}
 
-	// TODO add and edit note should go through UI State as well.
-
 	function scrollToNote(note_id:number|undefined) {
 		if( !note_id ) return;	// allows simpler code in templates
 		// temporary hack.

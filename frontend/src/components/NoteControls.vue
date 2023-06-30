@@ -114,7 +114,7 @@ function appendToThread() {
 
 function threadOut() {
 	if( !note.value ) return;
-	noteEditorStore.threadOut(note.value.id, note.value.thread);
+	noteEditorStore.threadOut(note.value.id);
 	uiStateStore.deselectNote();
 }
 

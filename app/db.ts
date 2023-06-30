@@ -34,26 +34,26 @@ export function createNote(note :{contents :string, thread :number, created :Dat
 	return db.lastInsertRowId;
 }
 
-export function updateContents( note_id:number, contents:string) {
+export function updateNoteContents(note_id:number, contents:string) {
 	const db = getDB();
 	db.query('UPDATE notes SET contents = :contents WHERE id = :note_id', {contents, note_id});
 }
+export function updateNoteThread(note_id:number, thread_id:number) {
+	const db = getDB();
+	db.query('UPDATE notes SET thread = :thread_id WHERE id = :note_id', {thread_id, note_id});
+}
 
-export function createThread(note :{contents :string, created :Date, parent :number}) :number {
+export function createThread(thread :{parent_id :number, name :string, created :Date}) :number {
 	const db = getDB();
 	let id :number = 0;
 	db.transaction( () => {
-		db.query('INSERT INTO notes ("contents", "thread", "created") VALUES (:contents, :thread, :created)', 
-			{contents: note.contents, thread: 1, created: note.created});
+		db.query('INSERT INTO threads ("parent_id", "name", "created") VALUES (:parent_id, :name, :created)', thread);
 		id = db.lastInsertRowId;
-		// set the thread to note's own id:
-		db.query('UPDATE notes SET thread = :id WHERE id = :id', {id});
-		// create the relation
-		createRelation({source:id, target:note.parent, label:"thread-out", created: note.created});
 	});
-
 	return id;
 }
+
+// TODO also need update thread? -> change parent and change name.
 
 export function createRelation(relation:{source :number, target :number, label: string, created :Date} ) {
 	getDB().query('INSERT INTO relations ("source", "target", "label", "created") '

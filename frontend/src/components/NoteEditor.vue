@@ -1,21 +1,26 @@
 <script setup lang="ts">
-import { computed } from '@vue/reactivity';
-import {ref, Ref, watch } from 'vue';
+import { computed, reactive } from '@vue/reactivity';
+import {nextTick, onMounted, ref, Ref, watch } from 'vue';
+import { useUIStateStore } from '../models/ui_state';
 import { useNotesGraphStore } from '../models/graph';
 import { useNoteEditorStore } from '../note_editor';
+import { Thread, useThreadsStore } from '../models/threads';
 
 import type { EditRel } from '../models/graph';
 
 import LazyNoteHint from './LazyNoteHint.vue';
 import RelationIcon from './RelationIcon.vue';
 
+const uiStateStore = useUIStateStore();
+const threadsStore = useThreadsStore();
 const notesStore = useNotesGraphStore();
 const noteEditorStore = useNoteEditorStore();
 
 const text_input_elem :Ref<HTMLInputElement|undefined> = ref();
-watch( text_input_elem, () => {
-	if( !text_input_elem.value ) return;
-	text_input_elem.value.focus();
+const new_thread_name_input :Ref<HTMLInputElement|undefined> = ref();
+watch( [text_input_elem, new_thread_name_input], () => {
+	if( new_thread_name_input.value ) new_thread_name_input.value.focus();
+	else if( text_input_elem.value ) text_input_elem.value.focus();
 });
 
 const rels = computed( () => {
@@ -32,29 +37,76 @@ function sourceLabel(label:string) :string {
 	return source_labels[label] || label;
 }
 
-// const thread = noteEditorStore.thread;
-// const contents = noteEditorStore.contents;
+// get selected threads
+
+const threads_sel = computed( () => {
+	const ret :Thread[] = []; 
+	uiStateStore.selected_threads.forEach( thread_id => {
+		ret.push(threadsStore.mustGetThread(thread_id))
+	} );
+	console.log(ret)
+	return ret;
+})
+
+function createNewThread() {
+	noteEditorStore.createNewThread();
+	nextTick( () => {
+		new_thread_name_input.value?.focus();
+	});
+}
 
 const saving = ref(false);
+const ok_to_save = computed( () => {
+	if( saving.value ) return false;
+	return !!noteEditorStore.ok_to_save;
+});
 async function saveNote() {
 	saving.value = true;
 	await noteEditorStore.saveNote();
 	saving.value = false;
 
-	// after that, maybe pre-select the last or newest thread to follow on?
+	// TODO after that, maybe pre-select the last or newest thread to follow on?
 }
-function reset() {
-	if( !saving.value ) noteEditorStore.reset();
-}
+
 function removeRel(d:EditRel) {
-	noteEditorStore.editRelation(d.note_id, d.label, false);
+	//noteEditorStore.editRelation(d.note_id, d.label, false);
 }
+
+const btn_classes = ['border-y-2', 'bg-sky-600', 'hover:bg-sky-500',
+	'border-b-sky-800', 'border-t-sky-400', 
+	'disabled:bg-gray-400', 'disabled:border-gray-400', 'text-gray-200',
+	'text-white',  'text-xs', 'font-medium', 'uppercase', 'rounded'];
 
 </script>
 
 <template>
-	<div v-if="noteEditorStore.has_data" class="p-2 bg-white border-t-2">
-		<p v-if="noteEditorStore.thread" class="italic text-amber-800 max-w-prose whitespace-nowrap overflow-clip">Thread: {{noteEditorStore.thread.name}}</p>
+	<div class="p-2 bg-gray-200 border-t-2">
+		<div v-if="noteEditorStore.create_new_thread">
+			<p  class="italic text-amber-800 ">
+				Parent:
+				<select v-model="noteEditorStore.thread_id" class="px-2 py-1 border bg-white	">
+					<option v-for="thread in threads_sel" :value="thread.id">{{ thread.name }}</option>
+				</select>
+			</p>
+			<p class="my-1 flex">
+				New Thread:
+				<input type="text" 
+					v-model="noteEditorStore.new_thread_name" ref="new_thread_name_input"
+					class="border mx-1" />
+				<button @click="noteEditorStore.useExistingThread()"
+					class="px-2 py-0" :class="btn_classes">X</button>
+			</p>
+		</div>
+		<p v-else class="italic text-amber-800 pb-1 flex">
+			Thread:
+			<select v-model="noteEditorStore.thread_id" class="px-2 py-1 border bg-white">
+				<option v-for="thread in threads_sel" :value="thread.id">{{ thread.name }}</option>
+			</select>
+			<!-- make thread selectable. Use list of selected threads. Use good defaults.
+				One option is "new"	(or make "new" a button)-->
+			<button @click="createNewThread"
+				class="px-2 py-1 ml-2" :class="btn_classes">New thread</button>
+		</p>
 		<ul>
 			<li v-for="d in rels" class="flex flex-nowrap">
 				<RelationIcon :label="d.label" class="h-5 w-5 flex-shrink-0"></RelationIcon>
@@ -67,15 +119,18 @@ function removeRel(d:EditRel) {
 			</li>
 		</ul>
 		<div>
-			<textarea ref="text_input_elem" v-model="noteEditorStore.contents" class="w-full h-32 border"></textarea>
+			<textarea ref="text_input_elem"
+				v-model="noteEditorStore.contents"
+				class="w-full h-32 border"></textarea>
 		</div>
-		<div class="flex justify-between">
+		<div class="flex justify-between mt-1">
 			<button
-				class="bg-blue-600 text-white px-4 py-2 text-sm uppercase rounded disabled:bg-gray-200"
+				class=" px-3 py-1 " :class="btn_classes"
 				:disabled="saving"
-				@click.stop.prevent="reset()">Cancel</button>
+				@click.stop.prevent="noteEditorStore.reset()">Cancel</button>
 			<button 
-				class="bg-blue-600 text-white px-4 py-2 text-sm uppercase rounded"
+				class="px-3 py-1" :class="btn_classes"
+				:disabled="!ok_to_save"
 				@click.stop.prevent="saveNote()">Save</button>
 		</div>
 	</div>

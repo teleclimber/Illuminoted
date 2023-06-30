@@ -2,6 +2,7 @@ import {computed, ref, shallowRef, reactive} from 'vue';
 import type {Ref, ComputedRef} from 'vue';
 import { defineStore } from 'pinia';
 import { useUIStateStore } from './ui_state';
+import { useThreadsStore } from './threads';
 
 export type RelationLabel = 'thread-out' | 'in-reply-to' | 'see-also';
 export const rel_labels :RelationLabel[] = ['thread-out', 'in-reply-to', 'see-also'];
@@ -14,6 +15,7 @@ export interface Relation {
 }
 
 // Edit Rel assumes that the note_id is the target, and the note being edited is the source.
+// ^^ that sounds iffy perhaps?
 export type EditRel = {
 	action: '' | 'delete' | 'add',
 	label: RelationLabel,
@@ -41,6 +43,7 @@ export type Thread = {
 
 export const useNotesGraphStore = defineStore('notes-graph', () => {
 	const uiStateStore = useUIStateStore();
+	const threadsStore = useThreadsStore();
 
 	const context_id = ref(1);
 	let loaded_from = '';
@@ -143,11 +146,12 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 		return note_ref;
 	}
 
-	async function createNote(thread_id:number|undefined, contents:string, rel_deltas:EditRel[],  created:Date) {
+	// create a note. 
+	// thread_id is the thead of the note, or if creating a new thread, it's the parent thread.
+	async function createNote(thread_id:number, contents:string, rel_deltas:EditRel[], created:Date, new_thread_name?:string) {
 		// create a note by sending data to server
 		// Get back note id, thread, etcc., and update local data
 		// Also may need to update thread
-		// 	
 		
 		const rawResponse = await fetch('/api/notes', {
 			method: 'POST',
@@ -159,17 +163,25 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 				thread_id,
 				contents: contents,
 				created: created,
-				rel_deltas: rel_deltas
+				rel_deltas: rel_deltas,
+				new_thread_name
 			})
 		});
 
-		const thread_out = rel_deltas.find( (d) => d.label === 'thread-out' );
-
 		const resp = await rawResponse.json();
-		const new_id = Number(resp.id);
-		if( !thread_id ) thread_id = new_id;
+		if( !resp.note_id ) throw new Error("I expected to get a note_id "+resp);
+		const new_note_id = Number(resp.note_id);
+
+		if( new_thread_name ) {
+			if( !resp.thread_id ) throw new Error("I expected to get a thread_id "+resp);
+			// create thread with thread_id as parent
+			// then set thread_id to new.
+			threadsStore.addExternallyCreatedThread(resp.thread_id, thread_id, new_thread_name, created);
+			thread_id = resp.thread_id;
+		}
+
 		const new_note:Note = {
-			id: new_id,
+			id: new_note_id,
 			thread: thread_id,
 			contents,
 			created,
@@ -178,37 +190,12 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 
 		applyRelDeltas(new_note, created, rel_deltas);
 
-		// TODO rethinnk how we "thread-out"!
-		// if( thread_out ) {
-		// 	// have to create the thread, add it, and select it.
-		// 	const ref_note = mustGetNote(thread_out.note_id);
-		// 	const parent_thread = mustGetThread(ref_note.value.thread);
-		// 	const new_thread :Thread = {
-		// 		id: new_id,
-		// 		contents,
-		// 		created,
-		// 		parent: parent_thread.id,
-		// 		children: []
-		// 	}
-		// 	parent_thread.children.push(new_thread);
-		// 	const temp_threads = new Map(threads.value);
-		// 	temp_threads.set(new_id, new_thread);
-		// 	threads.value = temp_threads;
-
-		// 	selected_threads.add(new_id);	// by default the newly created thread is selected
-		// }
-
 		const temp_notes = new Map(notes.value);
-		temp_notes.set(new_id, shallowRef(new_note));
+		temp_notes.set(new_note_id, shallowRef(new_note));
 		notes.value = temp_notes;
 	}
 
-	async function updateNote(note_id:number, contents:string, rel_deltas:EditRel[], modified:Date ) {
-		// We can just sned everything up to server and wait for an OK.
-		// Except relations should be in form of a delta.
-		// Also maybe don't try to update contents nless it's changed?
-		// Perhaps it's better to think of "edit" as editing content and editing relations separately?
-
+	async function updateNote(note_id:number, thread_id:number, contents:string, rel_deltas:EditRel[], modified:Date, new_thread_name?:string ) {
 		rel_deltas = rel_deltas.filter( d => d.action === 'add' || d.action === 'delete');
 
 		const rawResponse = await fetch('/api/notes/'+note_id, {
@@ -219,18 +206,30 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 			},
 			body: JSON.stringify({
 				note_id,
+				thread_id,
 				contents,
 				rel_deltas,
-				modified
+				modified,
+				new_thread_name
 			})
 		});
 
 		if( rawResponse.status !== 200 ) {
 			alert("Got error trying to update contents");
 		}
+
+		const resp = await rawResponse.json();
+
+		if( new_thread_name ) {
+			if( !resp.thread_id ) throw new Error("I expected to get a thread_id "+resp);
+			// create thread with thread_id as parent then set thread_id to new.
+			threadsStore.addExternallyCreatedThread(resp.thread_id, thread_id, new_thread_name, modified);
+			thread_id = resp.thread_id;
+		}
 		
 		const note_ref = mustGetNote(note_id);
 		note_ref.value.contents = contents;
+		note_ref.value.thread = thread_id;
 		applyRelDeltas(note_ref.value, modified, rel_deltas);
 		note_ref.value = Object.assign({}, note_ref.value);
 	}
