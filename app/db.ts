@@ -270,9 +270,9 @@ export function getDescThreadsLastActive(root: number, limit: number) :{thread: 
 }
 
 // get children of thread, by deep-last-active
-export function getThreadChildrenLastActive(root: number, limit: number) :{thread: number, last:Date}[] {
+export function getThreadChildrenLastActive(root: number, limit: number) :{thread: number, last?:Date}[] {
 	const db = getDB();
-	const q = db.prepareQuery<never,{thread: number, last:Date}, {root:number, limit:number}>(`
+	let q = db.prepareQuery<never,{thread: number, last:Date}, {root:number, limit:number}>(`
 	WITH RECURSIVE 
 	desc_threads(id) AS (
 		SELECT :root
@@ -287,8 +287,26 @@ export function getThreadChildrenLastActive(root: number, limit: number) :{threa
 		JOIN threads ON desc_threads.id = threads.id
 		WHERE threads.parent_id = :root
 		GROUP BY notes.thread ORDER BY max(notes.created) DESC LIMIT :limit`);
-	const rows = q.allEntries({root, limit});
+	let rows = q.allEntries({root, limit});
 	q.finalize();
+	
+	// The select above won't get threads that have no notes
+	// so select additional based on creation date.
+	if( rows.length < limit ) {
+		q = db.prepareQuery<never, {thread:number}, {root:Number, limit:number}>(`
+			SELECT threads.id AS thread
+			FROM threads
+			LEFT JOIN NOTES ON notes.thread = threads.id
+			WHERE notes.thread IS NULL
+			AND threads.parent_id = :root
+			ORDER BY threads.created DESC
+			LIMIT :limit
+		`);
+		const no_notes_rows = q.allEntries({root, limit: limit - rows.length});
+		q.finalize();
+		
+		rows = [...no_notes_rows, ...rows];
+	}
 	return rows;
 }
 
