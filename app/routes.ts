@@ -1,7 +1,7 @@
 import {RoutesBuilder, AuthAllow} from 'https://deno.land/x/dropserver_app@v0.2.1/mod.ts';
 
 import {getNote, postNote, patchNote} from './handlers/notes.ts';
-import {getNotes, getThreads} from './handlers/graph.ts';
+import {getNotes, getThreads, patchThread} from './handlers/graph.ts';
 import {getCurrentUser} from './handlers/user.ts';
 
 export default function createRoutes() {
@@ -17,6 +17,7 @@ export default function createRoutes() {
 	r.add("patch", "/api/notes/:id", authorizedOnly, patchNote);
 
 	r.add("get", "/api/threads/:id", authorizedOnly, getThreads);
+	r.add("patch", "/api/threads/:id", authorizedOnly, patchThread);
 	
 	// users:
 	r.add("get", "/api/current-user", authorizedOnly, getCurrentUser)

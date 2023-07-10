@@ -8,6 +8,7 @@ import NoteStack from './components/NoteStack.vue';
 import ThreadUI from './components/Thread.vue';
 import NoteControls from './components/NoteControls.vue';
 import NoteEditor from './components/NoteEditor.vue';
+import ThreadEditor from './components/ThreadEditor.vue';
 import SearchBox from './components/SearchBox.vue';
 
 const threadsStore = useThreadsStore();
@@ -70,6 +71,7 @@ const context_thread = computed( () => {
 			<div v-if="!show_threads" class="sticky bottom-0 z-50">
 				<NoteControls></NoteControls>
 				<NoteEditor v-if="noteEditorStore.show"></NoteEditor>
+				<ThreadEditor v-if="uiStateStore.show_edit_thread"></ThreadEditor>
 			</div>
 		</div>
 	

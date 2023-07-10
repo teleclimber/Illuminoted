@@ -356,3 +356,25 @@ function getThread(id: number) :DBThread {
 	q.finalize();
 	return row;
 }
+
+export function updateThread(id:number, parent_id:number, name: string) {
+	const db = getDB();
+	// start a transaction and then verify new parent id is not a descendant of id.
+	db.transaction( () => {
+		const q = db.prepareQuery<never, {parent_id:number}, {id:number}>(`
+			SELECT parent_id FROM threads WHERE id = :id`);
+		let p_id :number|undefined = parent_id;
+		while(p_id) {
+			const r = q.firstEntry({id:p_id});
+			p_id = r?.parent_id;
+			if( p_id === id ) throw new Error(`Thread ${parent_id} is a descendant of thread ${id}`);
+		}
+		q.finalize();
+
+		const q2 = db.prepareQuery<never, never, {id:number, parent_id:number, name: string}>(`
+			UPDATE threads SET parent_id = :parent_id, name = :name WHERE id = :id
+		`);
+		q2.execute({id, parent_id, name});
+		q2.finalize();
+	});
+}

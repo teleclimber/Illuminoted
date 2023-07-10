@@ -54,10 +54,13 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		document.querySelector('#stack-note-'+note_id)?.scrollIntoView();
 	}
 
-
 	const selected_threads :Set<number> = reactive(new Set);	// set of thread_ids for which we want to show notes
 	const expanded_threads :Set<number> = reactive(new Set);	// set of thread_ids for which we show the children
 
+	function threadClicked(id: number) {
+		if( selected_threads.has(id) ) deselectThread(id);
+		else selectThread(id);
+	}
 	function selectThread(id:number) {
 		selected_threads.add(id);
 		notesStore.reloadNotes();
@@ -81,15 +84,27 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		return _threads_width.value;
 	});
 
+	const show_edit_thread :Ref<number|undefined> = ref();
+	function showEditThread(id:number) {
+		// check if note editor is not open first? (i should not be based on how UI works)
+		if( show_edit_thread.value ) return;
+		deselectNote()
+		show_edit_thread.value = id;
+	}
+	function closeEditThread() {
+		show_edit_thread.value = undefined;
+	}
+
 	return {
 		selected_threads, expanded_threads,
-		selectThread, deselectThread, toggleExpandedThread, batchExpandThreads,
+		threadClicked, selectThread, deselectThread, toggleExpandedThread, batchExpandThreads,
 		setContext, context_id,
 		show_threads, showThreads, hideThreads,
 		show_search, showSearch, hideSearch,
 		selected_note_id, selectNote, deselectNote,
 		scrollToNote,
 		threads_width,
+		showEditThread, closeEditThread, show_edit_thread
 	}
 
 });

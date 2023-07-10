@@ -21,7 +21,7 @@
 // create handler that gets and returns notes and relations for a... time period?
 
 import { Context } from 'https://deno.land/x/dropserver_app@v0.2.1/mod.ts';
-import {getNotesByDate, getThreadSubtree, getDescThreadsLastActive, getThreadChildrenLastActive} from '../db.ts';
+import {getNotesByDate, getThreadSubtree, getDescThreadsLastActive, getThreadChildrenLastActive, updateThread} from '../db.ts';
 import type {DBNote, DBThread, DBRelation} from '../db.ts';
 
 export async function getNotes(ctx:Context) {
@@ -67,4 +67,18 @@ export async function getThreads(ctx:Context) {
 	}
 
 	ctx.respondWith(Response.json(ret));
+}
+
+type PatchThreadData = {
+	parent_id: number,
+	name: string
+}
+export async function patchThread(ctx:Context) {
+	if( ctx.params.id === undefined ) throw new Error("no thread id parameter");
+	const thread_id = parseInt(ctx.params.id+'');
+	const json = <PatchThreadData>await ctx.request.json();
+
+	updateThread(thread_id, json.parent_id, json.name);
+	
+	ctx.respondStatus(200, "OK");
 }

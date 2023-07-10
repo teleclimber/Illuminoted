@@ -77,10 +77,46 @@ export const useThreadsStore = defineStore('threads', () => {
 		return t;
 	}
 
+	async function updateThread(thread_id:number, parent_id:number, name:string) {
+		const thread = mustGetThread(thread_id);
+
+		const rawResponse = await fetch('/api/threads/'+thread_id, {
+			method: 'PATCH',
+			headers: {
+				'Accept': 'application/json',
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				parent_id,
+				name
+			})
+		});
+
+		if( rawResponse.status !== 200 ) {
+			alert("Got error trying to update thread");
+			return;
+		}
+
+		thread.name = name;
+
+		if( thread.parent !== parent_id ) {
+			if( thread.parent !== null ) {
+				const og_parent = getThread(thread.parent);
+				if( og_parent ) og_parent.num_children--;
+			}
+			const new_parent = getThread(parent_id);
+			if( new_parent ) new_parent.num_children++;
+			thread.parent = parent_id;
+			// an alternative to all this is to reload threads, if at all possible?
+			// like send up all threads we have visible and get all?
+		}
+	}
+
 	return {
 		getLatestSubThreads, loadChildren, getChildren,
 		addExternallyCreatedThread,
-		getThread, mustGetThread
+		getThread, mustGetThread,
+		updateThread
 	};
 
 });

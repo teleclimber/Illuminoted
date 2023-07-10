@@ -15,10 +15,6 @@ const props = defineProps<{
 }>();
 
 const selected = computed( () => uiStateStore.selected_threads.has(props.thread.id) );
-function threadClicked() {
-	if( selected.value ) uiStateStore.deselectThread(props.thread.id);
-	else uiStateStore.selectThread(props.thread.id);
-}
 
 const children = computed( () => {
 	return [...threadsStore.getChildren(props.thread.id)].reverse();
@@ -45,7 +41,7 @@ async function loadChildren() {
 			<div class="" >
 				<div class="px-1 rounded cursor-pointer hover:bg-yellow-100"
 					:class="[selected ? 'bg-yellow-200' : '']"
-					@click="threadClicked">{{props.thread.name}}</div>
+					@click="uiStateStore.threadClicked(props.thread.id)">{{props.thread.name}}</div>
 				<div v-if="show_children" class="ml-3 inline-flex rounded items-center px-1 bg-gray-200" >
 					<span class="text-sm font-medium text-gray-500">{{ children.length }}
 						<template v-if="children.length !== props.thread.num_children">of {{ props.thread.num_children }}</template>
