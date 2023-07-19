@@ -6,14 +6,39 @@ import { useNotesGraphStore } from './graph';
 export const useUIStateStore = defineStore('ui-state', () => {
 	const notesStore = useNotesGraphStore();
 
-	const show_threads = ref(false);
+	const win_width = ref(window.innerWidth);
+	const win_height = ref(window.innerHeight);	// maybe we don't need win_height
+	window.addEventListener("load", (event) => {
+		win_width.value = window.innerWidth;
+		win_height.value = window.visualViewport?.height || window.innerHeight;
+	});
+	window.addEventListener("resize", (event) => {
+		win_width.value = window.innerWidth;
+		win_height.value = window.visualViewport?.height || window.innerHeight;
+	});
 
+	
+	const show_threads = ref(window.innerWidth > 800);
 	function showThreads() {
 		show_threads.value = true;
 	}
 	function hideThreads() {
 		show_threads.value = false;
 	}
+
+	console.log( window.innerWidth);
+	const pin_threads = ref(window.innerWidth > 800);
+	function pinThreads() {
+		pin_threads.value = true;
+	}
+	function unPinThreads() {
+		pin_threads.value = false;
+	}
+
+	const _threads_width = ref(300);
+	const threads_width = computed( () => {
+		return _threads_width.value;
+	});
 
 	const _show_search = ref(false);
 	function showSearch() {
@@ -78,12 +103,6 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		ids.forEach( id => expanded_threads.add(id) );
 	}
 
-	// threads panel:
-	const _threads_width = ref(300);
-	const threads_width = computed( () => {
-		return _threads_width.value;
-	});
-
 	const show_edit_thread :Ref<number|undefined> = ref();
 	function showEditThread(id:number) {
 		// check if note editor is not open first? (i should not be based on how UI works)
@@ -100,11 +119,13 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		threadClicked, selectThread, deselectThread, toggleExpandedThread, batchExpandThreads,
 		setContext, context_id,
 		show_threads, showThreads, hideThreads,
+		pin_threads, pinThreads, unPinThreads,
 		show_search, showSearch, hideSearch,
 		selected_note_id, selectNote, deselectNote,
 		scrollToNote,
 		threads_width,
-		showEditThread, closeEditThread, show_edit_thread
+		showEditThread, closeEditThread, show_edit_thread,
+		win_height
 	}
 
 });

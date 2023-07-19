@@ -1,25 +1,17 @@
 <script setup lang="ts">
 import {computed} from 'vue';
-import { useThreadsStore } from './models/threads';
 import { useUIStateStore } from './models/ui_state';
 import { useNoteEditorStore } from './note_editor';
 
 import NoteStack from './components/NoteStack.vue';
-import ThreadUI from './components/Thread.vue';
+import ThreadStack from './components/ThreadStack.vue';
 import NoteControls from './components/NoteControls.vue';
 import NoteEditor from './components/NoteEditor.vue';
 import ThreadEditor from './components/ThreadEditor.vue';
 import SearchBox from './components/SearchBox.vue';
 
-const threadsStore = useThreadsStore();
 const uiStateStore = useUIStateStore();
 const noteEditorStore = useNoteEditorStore();
-
-const show_threads = computed( () => uiStateStore.show_threads );
-
-const context_thread = computed( () => {
-	return threadsStore.getThread(uiStateStore.context_id);
-});
 
 // Some UI use cases:
 // - authoring
@@ -46,6 +38,11 @@ const context_thread = computed( () => {
 // - currently selected thread
 // - some scroll indication, like created date of currently visible notes?
 
+const notes_left = computed( () => {
+	if( uiStateStore.pin_threads && uiStateStore.show_threads ) return uiStateStore.threads_width;
+	return 0;
+});
+
 </script>
 
 <template>
@@ -59,20 +56,25 @@ const context_thread = computed( () => {
 		</button>
 		
 	</header> -->
+		
+		<ThreadStack></ThreadStack>
 
-		<div class="bg-gray-100 sticky top-0 h-screen pb-4 overflow-y-scroll overflow-x-scroll"
-			:style="'width:'+uiStateStore.threads_width+'px'">
-			<ThreadUI v-if="context_thread"  :thread="context_thread" :is_root="true"></ThreadUI>
-		</div>
+		<div class="h-full flex flex-col">
+			<div class="flex-grow overflow-y-scroll" :style="'padding-left:'+notes_left+'px'">
+				<NoteStack ></NoteStack>
+			</div>
 
-		<div class="" :style="'padding-left:'+uiStateStore.threads_width+'px'">
-			<NoteStack v-if="!show_threads"></NoteStack>
-
-			<div v-if="!show_threads" class="sticky bottom-0 z-50">
+			<div class="z-10" :style="'padding-left:'+notes_left+'px'">
 				<NoteControls></NoteControls>
 				<NoteEditor v-if="noteEditorStore.show"></NoteEditor>
 				<ThreadEditor v-if="uiStateStore.show_edit_thread"></ThreadEditor>
 			</div>
 		</div>
-	
+
 </template>
+
+<style>
+html, body {
+	height: 100%;
+}
+</style>

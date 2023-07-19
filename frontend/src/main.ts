@@ -10,7 +10,7 @@ import { useThreadsStore } from './models/threads';
 
 const app = createApp(App);
 app.use(pinia);
-app.mount('#app');
+app.mount('body');
 
 let context_thread = 1;
 const p = window.location.pathname.substring(1);
@@ -20,4 +20,6 @@ if( p ) {
 const uiStateStore = useUIStateStore();
 uiStateStore.setContext(context_thread);
 
-uiStateStore.batchExpandThreads( await useThreadsStore().getLatestSubThreads(1, 10) );
+useThreadsStore().getLatestSubThreads(1, 10).then( (threads) => {
+	uiStateStore.batchExpandThreads(threads);
+});
