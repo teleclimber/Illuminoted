@@ -32,7 +32,7 @@ const context_thread = computed( () => {
 						<path d="M11 18v.01"></path>
 					</svg>
 				</button>
-				<button v-if="uiStateStore.pin_threads" @click="uiStateStore.unPinThreads()"
+				<button v-if="uiStateStore.threads_pinnable && uiStateStore.pin_threads" @click="uiStateStore.unPinThreads()"
 					class="py-1 px-2 border border-gray-700 text-gray-500 rounded-lg bg-white hover:bg-yellow-50">
 					<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-pinned" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
 						<path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
@@ -41,7 +41,7 @@ const context_thread = computed( () => {
 						<path d="M8 4l8 0"></path>
 					</svg>
 				</button>
-				<button v-else @click="uiStateStore.pinThreads()"
+				<button v-else-if="uiStateStore.threads_pinnable" @click="uiStateStore.pinThreads()"
 					class="py-1 px-2 border border-gray-700 text-gray-700 rounded-lg hover:bg-white">
 					<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-pinned" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
 						<path stroke="none" d="M0 0h24v24H0z" fill="none"></path>

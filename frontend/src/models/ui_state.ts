@@ -26,10 +26,12 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		show_threads.value = false;
 	}
 
-	console.log( window.innerWidth);
+	const threads_pinnable = computed( () => {
+		return win_width.value > 600;
+	});
 	const pin_threads = ref(window.innerWidth > 800);
 	function pinThreads() {
-		pin_threads.value = true;
+		if( threads_pinnable.value ) pin_threads.value = true;
 	}
 	function unPinThreads() {
 		pin_threads.value = false;
@@ -37,7 +39,8 @@ export const useUIStateStore = defineStore('ui-state', () => {
 
 	const _threads_width = ref(300);
 	const threads_width = computed( () => {
-		return _threads_width.value;
+		if( threads_pinnable.value ) return _threads_width.value;
+		else return win_width.value;
 	});
 
 	const _show_search = ref(false);
@@ -119,13 +122,12 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		threadClicked, selectThread, deselectThread, toggleExpandedThread, batchExpandThreads,
 		setContext, context_id,
 		show_threads, showThreads, hideThreads,
-		pin_threads, pinThreads, unPinThreads,
+		threads_pinnable, pin_threads, pinThreads, unPinThreads, threads_width,
 		show_search, showSearch, hideSearch,
 		selected_note_id, selectNote, deselectNote,
 		scrollToNote,
-		threads_width,
 		showEditThread, closeEditThread, show_edit_thread,
-		win_height
+		win_height, win_width
 	}
 
 });
