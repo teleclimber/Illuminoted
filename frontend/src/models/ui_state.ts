@@ -91,11 +91,9 @@ export const useUIStateStore = defineStore('ui-state', () => {
 	}
 	function selectThread(id:number) {
 		selected_threads.add(id);
-		notesStore.reloadNotes();
 	}
 	function deselectThread(id:number) {
 		selected_threads.delete(id);
-		notesStore.reloadNotes();
 	}
 
 	function toggleExpandedThread(id:number) {

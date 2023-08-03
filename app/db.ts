@@ -93,6 +93,19 @@ export type DBRelation = {
 	created: Date
 }
 
+export function getNotesByDateSplit(params :{threads: number[], from:Date, limit:number, search?:string}) :{notes:DBNote[], relations: DBRelation[]} {
+	const db = getDB();
+	const ret :{notes:DBNote[], relations: DBRelation[]} = {notes: [], relations: []};
+	params.limit = Math.round(params.limit/2);
+	db.transaction( () => {
+		const before = getNotesByDate(Object.assign(params, {backwards:true}));
+		const after = getNotesByDate(Object.assign(params, {backwards:false}));
+		ret.notes = before.notes.concat(after.notes);
+		ret.relations = before.relations.concat(after.relations);
+	});
+	return ret;
+}
+
 export function getNotesByDate(params :{threads: number[], from:Date, backwards: boolean, limit:number, search?:string}) :{notes:DBNote[], relations: DBRelation[]} {
 	const db = getDB();
 	const ret :{notes:DBNote[], relations: DBRelation[]} = {notes: [], relations: []};

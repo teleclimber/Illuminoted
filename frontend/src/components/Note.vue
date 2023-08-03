@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, toRefs, Ref} from 'vue';
+import {computed, toRefs, ref, Ref, onMounted, onUnmounted} from 'vue';
 import { useNotesGraphStore } from '../models/graph';
 import { useNoteEditorStore } from '../note_editor';
 import { useUIStateStore } from '../models/ui_state';
@@ -15,8 +15,19 @@ const uiStateStore = useUIStateStore();
 
 const props = defineProps<{
 	note: Ref<Note>,
+	iObs: IntersectionObserver|undefined
 }>();
 const {note} = toRefs(props);
+
+const note_elem :Ref<HTMLElement|undefined> = ref();
+onMounted( () => {
+	if( !note_elem.value ) throw new Error("no note element");
+	if( !props.iObs ) throw new Error("no intersection observer")
+	props.iObs.observe(note_elem.value);
+});
+onUnmounted( () => {
+	if( note_elem.value ) props.iObs?.unobserve(note_elem.value);
+});
 
 type TextNode = {
 	text: string
@@ -112,7 +123,10 @@ const classes = computed( () => {
 </script>
 
 <template>
-	<div class="flex flex-col md:flex-row" :class="classes" :id="'stack-note-'+note.id" @click="uiStateStore.selectNote(note.id)">
+	<div class="flex flex-col md:flex-row" :class="classes" :id="'stack-note-'+note.id" 
+		:data-node-id="note.id"
+		@click="uiStateStore.selectNote(note.id)"
+		ref="note_elem">
 		<div class="flex-shrink-0 text-gray-500 md:w-28">{{note.created.toLocaleTimeString()}}</div>
 		<div class="md:border-l-2 md:pl-1 border-amber-700 flex-grow md:pb-1" >
 			<p class="">
@@ -150,6 +164,7 @@ const classes = computed( () => {
 
 			<div class="absolute" v-if="show_rel_controls">
 				<RelationsControls :note="note"></RelationsControls>
+				<!-- also controls for selected note: Edit, "reply", "thread-out"? -->
 			</div>
 		</div>
 	</div>

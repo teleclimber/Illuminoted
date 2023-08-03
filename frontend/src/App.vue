@@ -2,6 +2,7 @@
 import {computed} from 'vue';
 import { useUIStateStore } from './models/ui_state';
 import { useNoteEditorStore } from './note_editor';
+import { useNoteStackStore } from './models/note_stack';
 
 import NoteStack from './components/NoteStack.vue';
 import ThreadStack from './components/ThreadStack.vue';
@@ -9,6 +10,7 @@ import NoteControls from './components/NoteControls.vue';
 import NoteEditor from './components/NoteEditor.vue';
 import ThreadEditor from './components/ThreadEditor.vue';
 import SearchBox from './components/SearchBox.vue';
+import TimeBar from './components/TimeBar.vue';
 
 const uiStateStore = useUIStateStore();
 const noteEditorStore = useNoteEditorStore();
@@ -70,10 +72,9 @@ const notes_left = computed( () => {
 
 		<SearchBox v-if="uiStateStore.show_search" class="z-20"></SearchBox>
 
-		<div class="h-full flex flex-col" :style="'padding-left:'+notes_left+'px'">
-			<div class="flex-grow overflow-y-scroll" >
-				<NoteStack ></NoteStack>
-			</div>
+		<div class="h-full flex flex-col" :style="'padding-left:'+notes_left+'px; padding-right: 50px'">
+			
+			<NoteStack ></NoteStack>
 
 			<div class="z-10">
 				<NoteControls></NoteControls>
@@ -81,6 +82,8 @@ const notes_left = computed( () => {
 				<ThreadEditor v-if="uiStateStore.show_edit_thread"></ThreadEditor>
 			</div>
 		</div>
+
+		<TimeBar></TimeBar>
 
 </template>
 

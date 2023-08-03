@@ -46,7 +46,8 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 	const threadsStore = useThreadsStore();
 
 	const context_id = ref(1);
-	let loaded_from = '';
+	let earliest :Date|undefined;
+	let latest :Date|undefined;
 
 	const search_term = ref('');
 
@@ -54,13 +55,15 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 
 	function setContext(id:number) {
 		context_id.value = id;
-		loaded_from = '';
+		earliest = undefined;
+		latest = undefined;
 	}
 
 	function reloadNotes() {
 		notes.value = new Map;
-		loaded_from = '';
-		getMoreNotes();
+		earliest = undefined;
+		latest = undefined;
+		getMoreNotesBefore();
 	}
 
 	let search_timeout:number|undefined = undefined;
@@ -70,12 +73,30 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 		search_timeout = setTimeout( () => reloadNotes(), 150 );
 	}
 
-	async function getMoreNotes() {
+	async function getNotesAroundDate(around_date: Date) {
+		notes.value = new Map;
+		earliest = undefined;
+		latest = undefined;
+		loadNotes(around_date, "split", search_term.value);
+	}
+
+	async function getMoreNotesBefore() {
+		await loadNotes(earliest, "before", search_term.value);
+	}
+	async function getMoreNotesAfter() {
+		await loadNotes(latest, "after", search_term.value);
+	}
+
+	const loading = ref(false);
+	async function loadNotes(date:Date|undefined, direction:"before"|"after"|"split", search_term:string) {
+		if( loading.value ) return;	// throw new Error("notes are currently being loaded");
+		loading.value = true;
 		const resp = await fetch('/api/notes/?'
 			+ new URLSearchParams({
 				threads: Array.from(uiStateStore.selected_threads).join(','),
-				date: loaded_from,
-				search: search_term.value
+				date: date ? date.toISOString() : '',
+				direction,
+				search: search_term
 			}));
 		if( !resp.ok ) throw new Error("fetch not OK");
 		const data = <{relations: any[], notes: any[]}>await resp.json();
@@ -84,10 +105,12 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 		if( !Array.isArray(data.notes) ) throw new Error("expected array of notes");
 		const new_note_datas = data.notes.map( (n:any) => noteFromRaw(n) );
 
-		// Currently notes are returned sorted crhonological, so last one is oldest, so use that as loaded from.
-		// Whe we put different sort order in request, adust this.
 		if( new_note_datas.length ) {
-			loaded_from = new Date(new_note_datas[new_note_datas.length -1].created).toISOString();
+			new_note_datas.sort( (a, b) => a.created < b.created ? -1 : 1);
+			const new_earliest = new Date(new_note_datas[0].created);
+			if( !earliest || new_earliest < earliest ) earliest = new_earliest;
+			const new_latest = new Date(new_note_datas[new_note_datas.length -1].created);
+			if( !latest || new_latest > latest ) latest = new_latest;
 		}
 		
 		const temp_notes = new Map(notes.value);
@@ -104,6 +127,7 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 		});
 
 		notes.value = temp_notes;
+		loading.value = false;
 	}
 
 	const sorted_notes :ComputedRef<Ref<Note>[]> = computed( () => {
@@ -268,7 +292,8 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 		search_term, setSearchTerm,
 		getNote, mustGetNote, lazyGetNote, getLoadNote,
 		updateNote, createNote,
-		getMoreNotes,
+		loading,
+		getMoreNotesBefore, getMoreNotesAfter, getNotesAroundDate,
 		reloadNotes
 	}
 });

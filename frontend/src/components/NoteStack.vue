@@ -1,14 +1,22 @@
 <script setup lang="ts">
-import {computed, watch, ref, onUpdated, nextTick} from 'vue';
+import {computed, watch, ref, onMounted, onUpdated, nextTick, onUnmounted} from 'vue';
 import type {Ref} from 'vue';
 import { useNotesGraphStore } from '../models/graph';
 import type {Note} from '../models/graph';
 import { useThreadsStore } from '../models/threads';
+import { useNoteStackStore } from '../models/note_stack';
 
 import NoteUI from './Note.vue';
 
 const threadsStore = useThreadsStore();
 const notesStore = useNotesGraphStore();
+const noteStackStore = useNoteStackStore();
+
+const scroll_container :Ref<HTMLElement|undefined> = ref();
+const upper_stack_container :Ref<HTMLElement|undefined> = ref(); 
+const upper_stack_measurer :Ref<HTMLElement|undefined> = ref();
+const upper_stack_buffer = 50000;
+let upper_stack_height = upper_stack_buffer;
 
 type StackItem = {
 	note: Ref<Note>,
@@ -20,13 +28,16 @@ type StackItem = {
 	parent: Ref<string>
 }
 
-const stack = computed( () => {
+const stacks = computed( () => {
+	const ret :{upper:StackItem[], lower:StackItem[]} = {upper: [], lower: []};
+	let cur_stack = ret.upper;
+	const target_date = noteStackStore.getTargetDate();
+	const target_note_id = noteStackStore.getTargetNoteID();
 	let prev :StackItem|undefined;
-	return notesStore.sorted_notes.map( n => {
-
+	
+	notesStore.sorted_notes.forEach( n => {
 		const date = n.value.created.toLocaleDateString();
 		const show_date = !prev || prev.date !== date;
-
 		const is_root = n.value.thread === n.value.id;
 		const show_thread = !is_root && (!prev || show_date || prev.note.value.thread !== n.value.thread);
 		let thread = '';
@@ -35,7 +46,6 @@ const stack = computed( () => {
 			if( t ) thread = t.name;
 			else thread = '[thread not loaded]';
 		}
-
 		let parent = ref("loading...");
 		if( is_root ) {
 			const rel = n.value.relations.find( r => {
@@ -58,136 +68,66 @@ const stack = computed( () => {
 			parent
 		};
 		prev = s;
+		if( target_date && target_date < n.value.created ) cur_stack = ret.lower;
+		cur_stack.push(s);
+		if( target_note_id === n.value.id ) cur_stack = ret.lower;
 		return s;
-	});
-});
-
-
-type SubThread = {
-	hint: string,
-	first: Note,
-	last: Note
-}
-type SubThreadNote = {
-	subthread: SubThread | undefined,
-	show_thread: boolean,
-	thread: string,
-	note: Note,
-	sub_pause: boolean,
-	sub_unpause: boolean
-}
-
-// Let's try something new....
-const sub_threaded = computed( () => {
-	const sub_threads :SubThread[] = [];
-	let cur_sub_thread : SubThread | undefined;
-	let sub_unpause = false;
-	const ret :SubThreadNote[] = [];
-	notesStore.sorted_notes.forEach( n => {
-		let show_thread = true;
-		sub_unpause = false;
-		let subthread_continues = false;
-		const reply_to = n.value.relations.find( r => r.label === 'in-reply-to' )?.target;
-		if( cur_sub_thread && cur_sub_thread.last.id === reply_to ) {
-			if( n.value.thread === cur_sub_thread.last.thread ) show_thread = false;
-			cur_sub_thread.last = n.value;
-			subthread_continues = true;
-		}
-		else if( reply_to === undefined ) {
-			// cur_sub_thread = { 
-			// 	hint: n.value.contents.substring(0, 40),
-			// 	first: n.value,
-			// 	last: n.value
-			// }
-			// sub_threads.push(cur_sub_thread);
-			cur_sub_thread = undefined;
-		}
-		else {
-			cur_sub_thread = sub_threads.find( t => t.last.id === reply_to );
-			if( cur_sub_thread ) {
-				cur_sub_thread.last = n.value;
-				sub_unpause = true;
-			}
-			else {
-				cur_sub_thread = { 
-					hint: n.value.contents.substring(0, 40),
-					first: n.value,
-					last: n.value
-				}
-				const first = ret.find( s => s.note.id === reply_to );
-				if( first ) {
-					cur_sub_thread.first = first.note;
-					first.subthread = cur_sub_thread;
-				}
-				sub_threads.push(cur_sub_thread);
-			}
-		}
-
-		if( !subthread_continues && ret.length !== 0 ) ret[ret.length -1].sub_pause = true;
-
-		let thread = "";
-		if( show_thread ) {
-			const t = threadsStore.getThread(n.value.thread);
-			if( t ) thread = t.name;
-			else thread = '[thread not loaded]';
-		}
-
-		ret.push( {
-			subthread: cur_sub_thread,
-			note: n.value,
-			show_thread,
-			thread,
-			sub_pause: false,
-			sub_unpause
-		} );
 	});
 
 	return ret;
 });
 
-let loading = false;
-const load_more_elem :Ref<HTMLElement|undefined> = ref();
-const observer = new IntersectionObserver(async () => {
-	if( loading ) return;
-	loading = true;
-	await loadMoreNotes();
-	loading = false;
-}, {threshold: 0.1});
-watch( load_more_elem, () => {
-	if( !load_more_elem.value ) return;
-	observer.observe(load_more_elem.value);
+const first_note_id = computed( () => {
+	if( stacks.value.upper.length > 0 ) return stacks.value.upper[0].note.value.id;
+	if( stacks.value.lower.length > 0 ) return stacks.value.lower[0].note.value.id;
+});
+const last_note_id = computed( () => {
+	const l = stacks.value.lower
+	if( l.length > 0 ) return l[l.length -1].note.value.id;
+	const u = stacks.value.upper;
+	if( u.length > 0 ) return u[u.length-1].note.value.id;
 });
 
-const buffer_elem :Ref<HTMLElement|undefined> = ref();
-const notes_measurer :Ref<HTMLElement|undefined> = ref();
-const buffer_height = ref('');
-let orig_notes_h = 0;
-let scroll = 0;
-window.addEventListener( 'scroll', () => {
-	scroll = window.scrollY;
-});
-
-const shift = 10000;
-async function loadMoreNotes() {
-	if( !notes_measurer.value ) return;
-	orig_notes_h = notes_measurer.value.offsetHeight;
-	buffer_height.value = shift + 'px';
-	nextTick( () => {
-		window.scrollTo({top:window.scrollY+shift}); 
+let notesIntersectObs :IntersectionObserver|undefined = undefined;
+onMounted( () => {
+	notesIntersectObs = new IntersectionObserver( (entries) => {
+		entries.forEach( e => {
+			const id = e.target.getAttribute('data-node-id');
+			if( !id ) return;
+			const note_id = Number(id);
+			if( e.isIntersecting ) {
+				noteStackStore.setNoteVisible(note_id);
+				if( first_note_id.value && note_id === first_note_id.value ) {
+					console.log("loading notes before");
+					notesStore.getMoreNotesBefore();
+				}
+				if( last_note_id.value && note_id === last_note_id.value ) {
+					notesStore.getMoreNotesAfter()
+				}
+			}
+			else noteStackStore.setNoteInvisible(note_id);
+		});
 	});
+});
+onUnmounted( () => {
+	if( notesIntersectObs ) notesIntersectObs.disconnect();
+});
 
-	await notesStore.getMoreNotes();
-}
+watch( () => noteStackStore.reset_scroll_ticker, () => {
+	if( scroll_container.value === undefined ) throw new Error("need that scroll container");
+	scroll_container.value.scrollTop = upper_stack_height - 200;	//TODO use window height/2?
+});
 
 onUpdated( () => {
-	if( !notes_measurer.value ) return;
-	if( buffer_height.value === '' ) return;
-	const new_notes_h = notes_measurer.value.offsetHeight;
-	if( new_notes_h === orig_notes_h ) return;  // notes have not updated yet
-	buffer_height.value = '';
-	nextTick( () => {
-		window.scrollTo({top:scroll-shift+new_notes_h-orig_notes_h}); 
-	});
+	if( !scroll_container.value || !upper_stack_container.value || !upper_stack_measurer.value ) return;
+	const new_notes_h = upper_stack_measurer.value.offsetHeight;
+	const delta = new_notes_h + upper_stack_buffer - upper_stack_height;
+	if( delta > 0 ) {
+		console.log("growing upper by ", delta);
+		scroll_container.value.scrollBy({top:delta, behavior: 'instant'});
+		upper_stack_height = new_notes_h + upper_stack_buffer;
+		upper_stack_container.value.style.height = upper_stack_height+'px';
+	}
 });
 
 const no_notes = computed( () => notesStore.sorted_notes.length === 0 );
@@ -198,13 +138,29 @@ const no_notes = computed( () => notesStore.sorted_notes.length === 0 );
 </script>
 
 <template>
-	<div class="px-4" >
-		<a href="#" ref="load_more_elem" @click.stop.prevent="loadMoreNotes()" class="block border my-2 text-center text-gray-500 italic" style="height: 500px">
-			load more notes
-		</a>
-		<div ref="buffer_elem" :style="{height:buffer_height}"></div>
-		<div ref="notes_measurer">
-			<template v-for="s in stack" :key="s.note.value.id">
+	<div class="flex-grow overflow-y-scroll" ref="scroll_container" >
+		<div ref="upper_stack_container" class="flex flex-col justify-end bg-blue-100 no-anchor" :style="'height:'+upper_stack_height+'px'">
+			<div ref="upper_stack_measurer" class="bg-green-100">
+				<template v-for="s in stacks.upper" :key="s.note.value.id">
+					<div v-if="s.show_date" class="font-bold">
+						<div class="pt-2">{{s.date}}</div>
+					</div> 
+					<div v-if="s.is_root" class="text-sm flex h-5 overflow-y-hidden">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 0 0 9 9"></path></svg> 
+						<p>{{s.parent.value}}</p>
+					</div>
+					<div v-else-if="s.show_thread || s.show_date" class="text-sm flex">
+						<div v-if="s.thread" class="italic text-amber-800 h-5 overflow-clip">
+							{{s.thread}}
+						</div>
+						<div v-else>(thread not found)</div>
+					</div>
+					<NoteUI :note="s.note" :iObs="notesIntersectObs"></NoteUI>
+				</template>
+			</div>
+		</div>
+		<div class="bg-fuchsia-100 no-anchor">
+			<template v-for="s in stacks.lower" :key="s.note.value.id">
 				<div v-if="s.show_date" class="font-bold">
 					<div class="pt-2">{{s.date}}</div>
 				</div> 
@@ -218,11 +174,16 @@ const no_notes = computed( () => notesStore.sorted_notes.length === 0 );
 					</div>
 					<div v-else>(thread not found)</div>
 				</div>
-				<NoteUI :note="s.note" ></NoteUI>
+				<NoteUI :note="s.note" :iObs="notesIntersectObs"></NoteUI>
 			</template>
-			
 		</div>
-		<div v-if="no_notes" class="text-gray-500 italic">No notes... :(</div>
-		<div class="h-56">&nbsp;</div>
-    </div>
+		<div v-if="no_notes" class="text-gray-500 italic no-anchor">No notes... :(</div>
+		<div class="h-56 no-anchor">&nbsp;</div>
+	</div>
 </template>
+
+<style scoped>
+.no-anchor {
+	overflow-anchor: none;
+}
+</style>
