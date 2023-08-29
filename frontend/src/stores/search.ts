@@ -1,6 +1,6 @@
 import { ref , watch} from "vue";
 import { defineStore } from 'pinia';
-import { useNotesGraphStore } from './models/graph';
+import { useNotesGraphStore } from './graph';
 
 export const useSearchControlStore = defineStore('search-control', () => {
 	const notesStore = useNotesGraphStore();

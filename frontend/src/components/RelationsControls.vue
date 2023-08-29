@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {computed, Ref, toRefs } from 'vue';
-import { useNoteEditorStore } from '../note_editor';
+import { useNoteEditorStore } from '../stores/note_editor';
 
-import type { Note } from '../models/graph';
+import type { Note } from '../stores/graph';
 import RelationIcon from './RelationIcon.vue';
 
 const noteEditorStore = useNoteEditorStore();

@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import {computed} from 'vue';
-import { useUIStateStore } from './models/ui_state';
-import { useNoteEditorStore } from './note_editor';
-import { useNoteStackStore } from './models/note_stack';
+import { useUIStateStore } from './stores/ui_state';
+import { useNoteEditorStore } from './stores/note_editor';
 
 import NoteStack from './components/NoteStack.vue';
 import ThreadStack from './components/ThreadStack.vue';

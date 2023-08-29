@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed} from 'vue';
-import { useThreadsStore } from '../models/threads';
-import { useUIStateStore } from '../models/ui_state';
+import { useThreadsStore } from '../stores/threads';
+import { useUIStateStore } from '../stores/ui_state';
 
 import ThreadUI from './Thread.vue';
 

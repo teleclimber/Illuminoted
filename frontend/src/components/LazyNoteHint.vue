@@ -1,6 +1,6 @@
 <script setup lang="ts">
 	import {computed, toRefs, Ref} from 'vue';
-	import type {Note} from '../models/graph';
+	import type {Note} from '../stores/graph';
 	
 	const props = defineProps<{
 		note: Ref<Note|undefined>,

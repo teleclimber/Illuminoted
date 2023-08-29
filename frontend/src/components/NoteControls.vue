@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import {ref, computed, ComputedRef, Ref } from 'vue';
-import { useNotesGraphStore } from '../models/graph';
-import { useNoteEditorStore } from '../note_editor';
-import { useUIStateStore } from '../models/ui_state';
+import { useNotesGraphStore } from '../stores/graph';
+import { useNoteEditorStore } from '../stores/note_editor';
+import { useUIStateStore } from '../stores/ui_state';
 
-import type {Note} from '../models/graph';
+import type {Note} from '../stores/graph';
 import LazyNoteHint from './LazyNoteHint.vue';
 import RelationIcon from './RelationIcon.vue';
-import { useThreadsStore } from '../models/threads';
+import { useThreadsStore } from '../stores/threads';
 
 const notesStore = useNotesGraphStore();
 const threadsStore = useThreadsStore();

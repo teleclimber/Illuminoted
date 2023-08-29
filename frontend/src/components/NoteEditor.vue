@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, reactive } from '@vue/reactivity';
 import {nextTick, onMounted, ref, Ref, watch } from 'vue';
-import { useUIStateStore } from '../models/ui_state';
-import { useNotesGraphStore } from '../models/graph';
-import { useNoteEditorStore } from '../note_editor';
-import { Thread, useThreadsStore } from '../models/threads';
+import { useUIStateStore } from '../stores/ui_state';
+import { useNotesGraphStore } from '../stores/graph';
+import { useNoteEditorStore } from '../stores/note_editor';
+import { Thread, useThreadsStore } from '../stores/threads';
 
-import type { EditRel } from '../models/graph';
+import type { EditRel } from '../stores/graph';
 
 import LazyNoteHint from './LazyNoteHint.vue';
 import RelationIcon from './RelationIcon.vue';

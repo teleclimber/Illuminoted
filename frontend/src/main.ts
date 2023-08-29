@@ -1,6 +1,6 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia'
-import { useUIStateStore } from './models/ui_state';
+import { useUIStateStore } from './stores/ui_state';
 
 const pinia = createPinia();
 

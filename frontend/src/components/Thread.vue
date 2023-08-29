@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import {ref, computed, watch} from 'vue';
-import { useUIStateStore } from '../models/ui_state';
-import { useThreadsStore } from '../models/threads';
+import { useUIStateStore } from '../stores/ui_state';
+import { useThreadsStore } from '../stores/threads';
 
 import ThreadUI from './Thread.vue';
-import type {Thread} from '../models/threads';
+import type {Thread} from '../stores/threads';
 
 const uiStateStore = useUIStateStore();
 const threadsStore = useThreadsStore();

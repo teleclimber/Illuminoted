@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import {computed, watch, ref, onMounted, onUpdated, nextTick, onUnmounted} from 'vue';
 import type {Ref} from 'vue';
-import { useNotesGraphStore } from '../models/graph';
-import type {Note} from '../models/graph';
-import { useThreadsStore } from '../models/threads';
-import { useNoteStackStore } from '../models/note_stack';
+import { useNotesGraphStore } from '../stores/graph';
+import type {Note} from '../stores/graph';
+import { useThreadsStore } from '../stores/threads';
+import { useNoteStackStore } from '../stores/note_stack';
 
 import NoteUI from './Note.vue';
 

@@ -2,8 +2,8 @@ import { reactive, ref, computed } from 'vue';
 import type {Ref} from 'vue';
 import { defineStore } from 'pinia';
 
-import { useNotesGraphStore } from './models/graph';
-import {EditRel, typedLabel} from './models/graph';
+import { useNotesGraphStore } from './graph';
+import {EditRel, typedLabel} from './graph';
 
 export const useNoteEditorStore = defineStore('note-editor', () => {
 	const notesStore = useNotesGraphStore();

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useNoteStackStore } from '../models/note_stack';
+import { useNoteStackStore } from '../stores/note_stack';
 
 const noteStackStore = useNoteStackStore();
 

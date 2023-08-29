@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, Ref, computed } from 'vue';
-import { useUIStateStore } from '../models/ui_state';
-import { useSearchControlStore } from '../search';
+import { useUIStateStore } from '../stores/ui_state';
+import { useSearchControlStore } from '../stores/search';
 
 const uiStateStore = useUIStateStore();
 const searchStore = useSearchControlStore();

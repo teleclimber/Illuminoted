@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, Ref, computed, onMounted } from 'vue';
-import { useUIStateStore } from '../models/ui_state';
-import { Thread, useThreadsStore } from '../models/threads';
+import { useUIStateStore } from '../stores/ui_state';
+import { Thread, useThreadsStore } from '../stores/threads';
 
 const uiStateStore = useUIStateStore();
 const threadsStore = useThreadsStore();
