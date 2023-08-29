@@ -1,9 +1,15 @@
-import {computed, ref, shallowRef, reactive} from 'vue';
+import {computed, ref, shallowRef, reactive, toRaw} from 'vue';
 import type {Ref, ComputedRef} from 'vue';
 import { defineStore } from 'pinia';
 import { useNotesGraphStore } from './graph';
+import { useThreadsStore } from './threads';
+
+type State = {
+	selected_threads: Set<number>,
+}
 
 export const useUIStateStore = defineStore('ui-state', () => {
+	const threadsStore = useThreadsStore();
 	const notesStore = useNotesGraphStore();
 
 	const win_width = ref(window.innerWidth);
@@ -55,11 +61,6 @@ export const useUIStateStore = defineStore('ui-state', () => {
 	});
 
 	const _context_id = ref(1);
-	function setContext(id:number) {
-		_context_id.value = id;
-		selected_threads.add(id);
-		notesStore.setContext(id);
-	}
 	const context_id = computed( () => {
 		return _context_id.value;
 	});
@@ -91,9 +92,11 @@ export const useUIStateStore = defineStore('ui-state', () => {
 	}
 	function selectThread(id:number) {
 		selected_threads.add(id);
+		updateUrlParams()
 	}
 	function deselectThread(id:number) {
 		selected_threads.delete(id);
+		updateUrlParams()
 	}
 
 	function toggleExpandedThread(id:number) {
@@ -115,10 +118,61 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		show_edit_thread.value = undefined;
 	}
 
+	function updateUrlParams() {
+		let url = `?threads=${Array.from(selected_threads).join(',')}`;
+		const s :State = {
+			selected_threads: toRaw(selected_threads)	
+		}
+		history.pushState(s, '', url);
+	}
+	function readUrlParams() :State {
+		const ret :State = {
+			selected_threads: new Set
+		};
+		const params = new URLSearchParams(document.location.search);
+		const threads_str = params.get("threads");
+		if( threads_str ) threads_str.split(",").forEach( t => ret.selected_threads.add(Number(t)));
+
+		return ret;
+	}
+	addEventListener("popstate", (event) => {
+		console.log("pop state", event);
+		selected_threads.clear();
+		const state = readUrlParams();
+		const expand :Set<number> = new Set;
+		state.selected_threads.forEach( t => {
+			selected_threads.add(t);
+			let thread = threadsStore.getThread(t);
+			while(thread && thread.parent) {
+				expand.add(thread.id);
+				thread = threadsStore.getThread(thread.parent);
+			}
+		});
+		batchExpandThreads(Array.from(expand));
+	});
+
+	function initDataFromURL() {
+		// if there are threads in URL, then load those.
+		// if not select 1 and get latest threads.
+		const state = readUrlParams();
+		if( state.selected_threads.size ) {
+			state.selected_threads.forEach( t => selected_threads.add(t) );
+			threadsStore.loadThreads(1, selected_threads).then( (threads) => {
+				batchExpandThreads(threads);
+			});
+		}
+		else {
+			selected_threads.add(_context_id.value);	//basically thread 1
+			threadsStore.getLatestSubThreads(1, 10).then( (threads) => {
+				batchExpandThreads(threads);
+			});
+		} 
+	}
+
 	return {
 		selected_threads, expanded_threads,
 		threadClicked, selectThread, deselectThread, toggleExpandedThread, batchExpandThreads,
-		setContext, context_id,
+		initDataFromURL, context_id,
 		show_threads, showThreads, hideThreads,
 		threads_pinnable, pin_threads, pinThreads, unPinThreads, threads_width,
 		show_search, showSearch, hideSearch,

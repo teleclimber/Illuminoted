@@ -58,11 +58,16 @@ export async function getThreads(ctx:Context) {
 	if( ctx.params.id === undefined ) throw new Error("no root parameter");
 	const root = parseInt(ctx.params.id+'');
 	const search = ctx.url.searchParams;
-	const deep = search.has("deep"); // .get('deep')
+	const deep = search.has("deep");
 	const limit = Number(search.get("limit"));
+	const threads_str = search.get("threads");
+	const threads :number[] = threads_str ? threads_str.split(",").map( t => Number(t)) : [];
 	
 	let ret :DBThread[];
-	if( deep ) {
+	if( threads.length ) {
+		ret = getThreadSubtree(root, threads);
+	}
+	else if( deep ) {
 		const thread_actives = getDescThreadsLastActive(root, limit);
 		ret = getThreadSubtree(root, thread_actives.map( a => a.thread));
 	}

@@ -12,6 +12,17 @@ export type Thread = {
 export const useThreadsStore = defineStore('threads', () => {
 	const threads :Map<number,Thread> = reactive(new Map); 
 
+	async function loadThreads(root:number, threads:Set<number>) {
+		const resp = await fetch('/api/threads/'+root+'?threads='+Array.from(threads).join(","));
+		if( !resp.ok ) throw new Error("fetch not OK");
+		const data = <any[]>await resp.json();
+		const ids :number[] = []; 
+		data.forEach( d => {
+			const id = ingestThread(d);
+			ids.push(id);
+		});
+		return ids;
+	}
 	async function getLatestSubThreads(root:number, limit: number) {
 		const resp = await fetch('/api/threads/'+root+'?deep=true&limit='+limit);
 		if( !resp.ok ) throw new Error("fetch not OK");
@@ -23,13 +34,13 @@ export const useThreadsStore = defineStore('threads', () => {
 		});
 		return ids;
 	}
-
 	async function loadChildren(root:number, limit: number) {
 		const resp = await fetch('/api/threads/'+root+'?limit='+limit);
 		if( !resp.ok ) throw new Error("fetch not OK");
 		const data = <any[]>await resp.json();
 		data.forEach( ingestThread );
 	}
+
 	function ingestThread(raw:any) {
 		const id = parseInt(raw.id);
 		let existing = threads.get(id);
@@ -113,7 +124,7 @@ export const useThreadsStore = defineStore('threads', () => {
 	}
 
 	return {
-		getLatestSubThreads, loadChildren, getChildren,
+		loadThreads, getLatestSubThreads, loadChildren, getChildren,
 		addExternallyCreatedThread,
 		getThread, mustGetThread,
 		updateThread
