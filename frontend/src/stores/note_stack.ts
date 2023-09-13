@@ -31,6 +31,16 @@ export const useNoteStackStore = defineStore('note-stack', () => {
 		else notesStore.reloadNotes();
 	});
 
+	watch( () => uiStateStore.debounced_search, () => {
+		target_note_id = undefined;
+		const target = getTargetFromVisible();
+		if( target ) target_date = target;
+		resetScroll();
+		notesStore.setSearchTerm(uiStateStore.cur_search);
+		if( target_date ) notesStore.getNotesAroundDate(target_date);
+		else notesStore.reloadNotes();
+	});
+
 	function goToDate(d: Date) {
 		target_note_id = undefined;
 		target_date = d;

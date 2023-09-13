@@ -124,9 +124,9 @@ onUpdated( () => {
 	const delta = new_notes_h + upper_stack_buffer - upper_stack_height;
 	if( delta > 0 ) {
 		console.log("growing upper by ", delta);
-		scroll_container.value.scrollBy({top:delta, behavior: 'instant'});
 		upper_stack_height = new_notes_h + upper_stack_buffer;
 		upper_stack_container.value.style.height = upper_stack_height+'px';
+		scroll_container.value.scrollBy({top:delta, behavior: 'instant'});
 	}
 });
 

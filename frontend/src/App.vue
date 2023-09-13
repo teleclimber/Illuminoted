@@ -69,7 +69,7 @@ const notes_left = computed( () => {
 			</button>
 		</div>
 
-		<SearchBox v-if="uiStateStore.show_search" class="z-20"></SearchBox>
+		<SearchBox v-if="uiStateStore.show_search || uiStateStore.cur_search" class="z-20"></SearchBox>
 
 		<div class="h-full flex flex-col" :style="'padding-left:'+notes_left+'px; padding-right: 50px'">
 			

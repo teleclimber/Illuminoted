@@ -1,4 +1,4 @@
-import {computed, ref, shallowRef, reactive, toRaw} from 'vue';
+import {computed, ref, watch, reactive} from 'vue';
 import type {Ref, ComputedRef} from 'vue';
 import { defineStore } from 'pinia';
 import { useNotesGraphStore } from './graph';
@@ -6,6 +6,7 @@ import { useThreadsStore } from './threads';
 
 type State = {
 	selected_threads: Set<number>,
+	search: string
 }
 
 export const useUIStateStore = defineStore('ui-state', () => {
@@ -55,11 +56,28 @@ export const useUIStateStore = defineStore('ui-state', () => {
 	}
 	function hideSearch() {
 		_show_search.value = false;
+		cur_search.value = '';
+		debounced_search.value = '';
 	}
 	const show_search = computed( () => {
 		return _show_search.value;
 	});
 
+	const cur_search = ref('');
+	const debounced_search = ref('');
+	let debounceTimer :number|undefined;
+	watch( cur_search, () => {
+		clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(() => {
+			debounced_search.value = cur_search.value;
+		}, 150);
+	});
+	watch( debounced_search, () => {
+		// if search is reset but there is search in the URL, then push history to remove search from URL.
+		const state = readUrlParams();
+		if( state.search && debounced_search.value === '' ) updateUrlParams();
+	});
+	
 	const _context_id = ref(1);
 	const context_id = computed( () => {
 		return _context_id.value;
@@ -118,27 +136,33 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		show_edit_thread.value = undefined;
 	}
 
+	// URL handling
 	function updateUrlParams() {
-		let url = `?threads=${Array.from(selected_threads).join(',')}`;
-		const s :State = {
-			selected_threads: toRaw(selected_threads)	
-		}
-		history.pushState(s, '', url);
+		const params = new URLSearchParams(document.location.search);
+		params.set("threads", Array.from(selected_threads).join(','));
+		if( debounced_search.value ) params.set("search", debounced_search.value);
+		else params.delete("search");
+		
+		history.pushState(null, '', '?'+params.toString());
 	}
 	function readUrlParams() :State {
 		const ret :State = {
-			selected_threads: new Set
+			selected_threads: new Set,
+			search: ""
 		};
 		const params = new URLSearchParams(document.location.search);
 		const threads_str = params.get("threads");
 		if( threads_str ) threads_str.split(",").forEach( t => ret.selected_threads.add(Number(t)));
-
+		ret.search = params.get("search") || "";
+		
 		return ret;
 	}
 	addEventListener("popstate", (event) => {
 		console.log("pop state", event);
 		selected_threads.clear();
 		const state = readUrlParams();
+		cur_search.value = state.search;
+		debounced_search.value = state.search;
 		const expand :Set<number> = new Set;
 		state.selected_threads.forEach( t => {
 			selected_threads.add(t);
@@ -149,12 +173,15 @@ export const useUIStateStore = defineStore('ui-state', () => {
 			}
 		});
 		batchExpandThreads(Array.from(expand));
+		
 	});
 
 	function initDataFromURL() {
 		// if there are threads in URL, then load those.
 		// if not select 1 and get latest threads.
 		const state = readUrlParams();
+		cur_search.value = state.search;
+		debounced_search.value = state.search;
 		if( state.selected_threads.size ) {
 			state.selected_threads.forEach( t => selected_threads.add(t) );
 			threadsStore.loadThreads(1, selected_threads).then( (threads) => {
@@ -175,7 +202,7 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		initDataFromURL, context_id,
 		show_threads, showThreads, hideThreads,
 		threads_pinnable, pin_threads, pinThreads, unPinThreads, threads_width,
-		show_search, showSearch, hideSearch,
+		show_search, showSearch, hideSearch, cur_search, debounced_search,
 		selected_note_id, selectNote, deselectNote,
 		scrollToNote,
 		showEditThread, closeEditThread, show_edit_thread,

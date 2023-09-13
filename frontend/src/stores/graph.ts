@@ -66,11 +66,8 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 		getMoreNotesBefore();
 	}
 
-	let search_timeout:number|undefined = undefined;
 	function setSearchTerm(s:string) {
 		search_term.value = s;
-		if( search_timeout ) clearTimeout(search_timeout);
-		search_timeout = setTimeout( () => reloadNotes(), 150 );
 	}
 
 	async function getNotesAroundDate(around_date: Date) {
