@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { watch, reactive, computed, Ref, ref } from 'vue';
+import { watch, reactive, computed, toRaw, ref } from 'vue';
 import { useUIStateStore } from './ui_state';
 import { useNotesGraphStore } from './graph';
 
@@ -22,30 +22,18 @@ export const useNoteStackStore = defineStore('note-stack', () => {
 		reset_scroll_ticker.value = reset_scroll_ticker.value +1;
 	}
 
-	watch( uiStateStore.selected_threads, () => {
-		target_note_id = undefined;
-		const target = getTargetFromVisible();
-		if( target ) target_date = target;
+	function reloadNotes() {
 		resetScroll();
-		if( target_date ) notesStore.getNotesAroundDate(target_date);
-		else notesStore.reloadNotes();
-	});
-
-	watch( () => uiStateStore.debounced_search, () => {
-		target_note_id = undefined;
-		const target = getTargetFromVisible();
-		if( target ) target_date = target;
-		resetScroll();
-		notesStore.setSearchTerm(uiStateStore.cur_search);
-		if( target_date ) notesStore.getNotesAroundDate(target_date);
-		else notesStore.reloadNotes();
-	});
+		const params = {search:uiStateStore.debounced_search, threads: toRaw(uiStateStore.selected_threads)};
+		if( target_date ) notesStore.loadNotesAroundDate(params, target_date);
+		else if( target_note_id ) notesStore.loadNotesAroundNote(params, target_note_id);
+		else notesStore.loadLatestNotes(params);
+	}
 
 	function goToDate(d: Date) {
-		target_note_id = undefined;
-		target_date = d;
+		setTargetDate(d);
 		resetScroll();
-		notesStore.getNotesAroundDate(d);
+		reloadNotes();
 	}
 
 	function goToNote(id:number) {
@@ -55,6 +43,21 @@ export const useNoteStackStore = defineStore('note-stack', () => {
 		// then upon loading have to scroll to it and highlight.
 		// Worried how this will end up feeling UX wise. It may be jarring to get a whole new stack just to see a note.
 		// .. and how do you go back to where you were after seeing that note?
+	}
+
+	function setTargetNote(id:number) {
+		target_note_id = id;
+		target_date = undefined;
+	}
+	function setTargetDate(d:Date) {
+		target_note_id = undefined;
+		target_date = d;
+	}
+	function setTargetDateToVisible() {
+		target_note_id = undefined;
+		target_date = undefined;
+		const target = getTargetFromVisible();
+		if( target ) target_date = target;
 	}
 
 	// Need a function that sets current focus date / note.
@@ -97,6 +100,8 @@ export const useNoteStackStore = defineStore('note-stack', () => {
 		goToDate, goToNote,
 		setNoteVisible, setNoteInvisible,
 		visible_date_range,
+		reloadNotes,
+		setTargetNote, setTargetDate, setTargetDateToVisible,
 		getTargetDate, getTargetNoteID,
 		reset_scroll_ticker
 	};

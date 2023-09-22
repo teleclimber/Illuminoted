@@ -1,7 +1,6 @@
-import {computed, ref, shallowRef, reactive} from 'vue';
+import {computed, ref, shallowRef} from 'vue';
 import type {Ref, ComputedRef} from 'vue';
 import { defineStore } from 'pinia';
-import { useUIStateStore } from './ui_state';
 import { useThreadsStore } from './threads';
 
 export type RelationLabel = 'thread-out' | 'in-reply-to' | 'see-also';
@@ -41,15 +40,20 @@ export type Thread = {
 	children: Thread[]
 }
 
+export type NoteParams = {
+	threads: Set<number>,
+	search: string
+}
+
 export const useNotesGraphStore = defineStore('notes-graph', () => {
-	const uiStateStore = useUIStateStore();
 	const threadsStore = useThreadsStore();
 
 	const context_id = ref(1);
 	let earliest :Date|undefined;
 	let latest :Date|undefined;
 
-	const search_term = ref('');
+	let threads :Set<number> = new Set;
+	let search = '';
 
 	const notes :Ref<Map<number,Ref<Note>>> = shallowRef(new Map);
 
@@ -59,41 +63,55 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 		latest = undefined;
 	}
 
-	function reloadNotes() {
+	function resetNotes(params: NoteParams) {
+		threads = params.threads;
+		search = params.search;
 		notes.value = new Map;
 		earliest = undefined;
 		latest = undefined;
-		getMoreNotesBefore();
 	}
 
-	function setSearchTerm(s:string) {
-		search_term.value = s;
+	// reset and load notes functions:
+	// (implies a change to search or threads)
+	async function loadLatestNotes(params: NoteParams) {
+		resetNotes(params);
+		await loadNotes(undefined, "before");
+	}
+	async function loadNotesAroundDate(params: NoteParams, around_date: Date) {
+		resetNotes(params);
+		loadNotes(around_date, "split");
+	}
+	async function loadNotesAroundNote(params: NoteParams, note_id: number) {
+		const note = mustGetNote(note_id);
+		resetNotes(params);
+		loadNotes(note.value.created, "split");
 	}
 
-	async function getNotesAroundDate(around_date: Date) {
-		notes.value = new Map;
-		earliest = undefined;
-		latest = undefined;
-		loadNotes(around_date, "split", search_term.value);
-	}
-
+	// Add to notes already loaded:
 	async function getMoreNotesBefore() {
-		await loadNotes(earliest, "before", search_term.value);
+		await loadNotes(earliest, "before");
 	}
 	async function getMoreNotesAfter() {
-		await loadNotes(latest, "after", search_term.value);
+		await loadNotes(latest, "after");
 	}
 
 	const loading = ref(false);
-	async function loadNotes(date:Date|undefined, direction:"before"|"after"|"split", search_term:string) {
-		if( loading.value ) return;	// throw new Error("notes are currently being loaded");
+	async function loadNotes(date:Date|undefined, direction:"before"|"after"|"split") {
+		if( loading.value ) {
+			console.log("aborted loading because loading some notes is already underway")
+			return;	// throw new Error("notes are currently being loaded");
+		}
+		if( threads.size === 0 ) {
+			console.log("no notes to load because no threads");
+			return;
+		}
 		loading.value = true;
 		const resp = await fetch('/api/notes/?'
 			+ new URLSearchParams({
-				threads: Array.from(uiStateStore.selected_threads).join(','),
+				threads: Array.from(threads).join(','),
 				date: date ? date.toISOString() : '',
 				direction,
-				search: search_term
+				search
 			}));
 		if( !resp.ok ) throw new Error("fetch not OK");
 		const data = <{relations: any[], notes: any[]}>await resp.json();
@@ -286,12 +304,11 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 	return {
 		setContext,
 		sorted_notes,
-		search_term, setSearchTerm,
 		getNote, mustGetNote, lazyGetNote, getLoadNote,
 		updateNote, createNote,
 		loading,
-		getMoreNotesBefore, getMoreNotesAfter, getNotesAroundDate,
-		reloadNotes
+		loadLatestNotes, loadNotesAroundDate, loadNotesAroundNote,
+		getMoreNotesBefore, getMoreNotesAfter
 	}
 });
 

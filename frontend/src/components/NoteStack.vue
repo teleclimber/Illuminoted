@@ -114,7 +114,7 @@ onUnmounted( () => {
 });
 
 watch( () => noteStackStore.reset_scroll_ticker, () => {
-	if( scroll_container.value === undefined ) throw new Error("need that scroll container");
+	if( scroll_container.value === undefined ) return; //throw new Error("need that scroll container");
 	scroll_container.value.scrollTop = upper_stack_height - 200;	//TODO use window height/2?
 });
 

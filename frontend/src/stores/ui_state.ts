@@ -1,7 +1,8 @@
 import {computed, ref, watch, reactive} from 'vue';
-import type {Ref, ComputedRef} from 'vue';
+import type {Ref} from 'vue';
 import { defineStore } from 'pinia';
 import { useNotesGraphStore } from './graph';
+import { useNoteStackStore } from './note_stack';
 import { useThreadsStore } from './threads';
 
 type State = {
@@ -11,6 +12,7 @@ type State = {
 
 export const useUIStateStore = defineStore('ui-state', () => {
 	const threadsStore = useThreadsStore();
+	const noteStackStore = useNoteStackStore();
 	const notesStore = useNotesGraphStore();
 
 	const win_width = ref(window.innerWidth);
@@ -58,6 +60,8 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		_show_search.value = false;
 		cur_search.value = '';
 		debounced_search.value = '';
+		noteStackStore.setTargetDateToVisible();
+		noteStackStore.reloadNotes();
 	}
 	const show_search = computed( () => {
 		return _show_search.value;
@@ -69,7 +73,11 @@ export const useUIStateStore = defineStore('ui-state', () => {
 	watch( cur_search, () => {
 		clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(() => {
+			if( cur_search.value === debounced_search.value ) return;
+			console.log( "in debounced search", cur_search.value, debounced_search.value )
+			noteStackStore.setTargetDateToVisible();
 			debounced_search.value = cur_search.value;
+			noteStackStore.reloadNotes();
 		}, 150);
 	});
 	watch( debounced_search, () => {
@@ -109,12 +117,16 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		else selectThread(id);
 	}
 	function selectThread(id:number) {
+		noteStackStore.setTargetDateToVisible();
 		selected_threads.add(id);
-		updateUrlParams()
+		updateUrlParams();
+		noteStackStore.reloadNotes();
 	}
 	function deselectThread(id:number) {
+		noteStackStore.setTargetDateToVisible();
 		selected_threads.delete(id);
-		updateUrlParams()
+		updateUrlParams();
+		noteStackStore.reloadNotes();
 	}
 
 	function toggleExpandedThread(id:number) {
@@ -173,7 +185,8 @@ export const useUIStateStore = defineStore('ui-state', () => {
 			}
 		});
 		batchExpandThreads(Array.from(expand));
-		
+		noteStackStore.setTargetDateToVisible();
+		noteStackStore.reloadNotes();
 	});
 
 	function initDataFromURL() {
@@ -187,13 +200,35 @@ export const useUIStateStore = defineStore('ui-state', () => {
 			threadsStore.loadThreads(1, selected_threads).then( (threads) => {
 				batchExpandThreads(threads);
 			});
+			noteStackStore.reloadNotes();
 		}
 		else {
 			selected_threads.add(_context_id.value);	//basically thread 1
 			threadsStore.getLatestSubThreads(1, 10).then( (threads) => {
 				batchExpandThreads(threads);
+				// actually I would like to load notes for the threads that were returned?
+				noteStackStore.reloadNotes();
 			});
 		} 
+	}
+
+	function drillDownNote(note_id:number) {
+		if( debounced_search.value !== "" ) {
+			updateUrlParams();	//URL with search term so that going back will take us to the search term
+			noteStackStore.setTargetNote(note_id);
+			cur_search.value = "";
+			debounced_search.value = "";
+			// URL without search term is automatically added in a debounced_search watcher.
+			noteStackStore.reloadNotes();
+		}
+		else if( selected_threads.size !== 1) {
+			noteStackStore.setTargetNote(note_id);
+			const note = notesStore.mustGetNote(note_id);
+			selected_threads.clear();
+			selected_threads.add(note.value.thread);
+			updateUrlParams();
+			noteStackStore.reloadNotes();
+		}
 	}
 
 	return {
@@ -205,6 +240,7 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		show_search, showSearch, hideSearch, cur_search, debounced_search,
 		selected_note_id, selectNote, deselectNote,
 		scrollToNote,
+		drillDownNote,
 		showEditThread, closeEditThread, show_edit_thread,
 		win_height, win_width
 	}

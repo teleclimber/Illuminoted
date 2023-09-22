@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {computed, toRefs, ref, Ref, onMounted, onUnmounted} from 'vue';
-import { useNotesGraphStore } from '../stores/graph';
 import { useNoteEditorStore } from '../stores/note_editor';
 import { useUIStateStore } from '../stores/ui_state';
 
@@ -9,7 +8,6 @@ import type {Note} from '../stores/graph';
 import RelationsControls from './RelationsControls.vue';
 import RelationIcon from './RelationIcon.vue';
 
-const notesStore = useNotesGraphStore();
 const noteEditorStore = useNoteEditorStore();
 const uiStateStore = useUIStateStore();
 
@@ -55,7 +53,7 @@ const contents = computed( () => {
 	}
 	if( cur_i < c.length ) ret.push({text:c.substring(cur_i, c.length)});
 
-	const search = notesStore.search_term;
+	const search = uiStateStore.debounced_search;
 	if(search) {
 		// find search term in non-url strings segments (for now)
 		//ret.forEach( (s, i) => {
@@ -127,7 +125,7 @@ const classes = computed( () => {
 		:data-node-id="note.id"
 		@click="uiStateStore.selectNote(note.id)"
 		ref="note_elem">
-		<div class="flex-shrink-0 text-gray-500 md:w-28">{{note.created.toLocaleTimeString()}}</div>
+		<a href="#" class="flex-shrink-0 text-gray-500 md:w-28" @click.stop.prevent="uiStateStore.drillDownNote(note.id)">{{note.created.toLocaleTimeString()}}</a>
 		<div class="md:border-l-2 md:pl-1 border-amber-700 flex-grow md:pb-1" >
 			<p class="">
 				<template v-for="c in contents">
