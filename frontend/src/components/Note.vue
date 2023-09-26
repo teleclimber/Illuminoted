@@ -121,7 +121,7 @@ const classes = computed( () => {
 </script>
 
 <template>
-	<div class="flex flex-col md:flex-row" :class="classes" :id="'stack-note-'+note.id" 
+	<div class="flex flex-col md:flex-row overflow-x-hidden" :class="classes" :id="'stack-note-'+note.id" 
 		:data-node-id="note.id"
 		@click="uiStateStore.toggleSelectNote(note.id)"
 		ref="note_elem">

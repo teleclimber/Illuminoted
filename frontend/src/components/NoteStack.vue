@@ -138,9 +138,9 @@ const no_notes = computed( () => notesStore.sorted_notes.length === 0 );
 </script>
 
 <template>
-	<div class="flex-grow overflow-y-scroll" ref="scroll_container" >
-		<div ref="upper_stack_container" class="flex flex-col justify-end bg-blue-100 no-anchor" :style="'height:'+upper_stack_height+'px'">
-			<div ref="upper_stack_measurer" class="bg-green-100">
+	<div class="flex-grow overflow-y-scroll px-2" ref="scroll_container" >
+		<div ref="upper_stack_container" class="flex flex-col justify-end no-anchor" :style="'height:'+upper_stack_height+'px'">
+			<div ref="upper_stack_measurer">
 				<template v-for="s in stacks.upper" :key="s.note.value.id">
 					<div v-if="s.show_date" class="font-bold">
 						<div class="pt-2">{{s.date}}</div>
@@ -159,7 +159,7 @@ const no_notes = computed( () => notesStore.sorted_notes.length === 0 );
 				</template>
 			</div>
 		</div>
-		<div class="bg-fuchsia-100 no-anchor">
+		<div class="no-anchor">
 			<template v-for="s in stacks.lower" :key="s.note.value.id">
 				<div v-if="s.show_date" class="font-bold">
 					<div class="pt-2">{{s.date}}</div>
