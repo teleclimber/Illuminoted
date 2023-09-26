@@ -95,9 +95,12 @@ export const useUIStateStore = defineStore('ui-state', () => {
 	// although that won't work with touch-only devices.
 	const selected_note_id :Ref<number|undefined> = ref();
 
-	function selectNote(note_id:number) {
+	function toggleSelectNote(note_id:number) {
 		if( selected_note_id.value === note_id ) selected_note_id.value = undefined;
 		else selected_note_id.value = note_id;
+	}
+	function selectNote(note_id:number) {
+		selected_note_id.value = note_id;
 	}
 	function deselectNote() {
 		selected_note_id.value = undefined;
@@ -214,6 +217,7 @@ export const useUIStateStore = defineStore('ui-state', () => {
 
 	function drillDownNote(note_id:number) {
 		if( debounced_search.value !== "" ) {
+			selectNote(note_id);
 			updateUrlParams();	//URL with search term so that going back will take us to the search term
 			noteStackStore.setTargetNote(note_id);
 			cur_search.value = "";
@@ -222,6 +226,7 @@ export const useUIStateStore = defineStore('ui-state', () => {
 			noteStackStore.reloadNotes();
 		}
 		else if( selected_threads.size !== 1) {
+			selectNote(note_id);
 			noteStackStore.setTargetNote(note_id);
 			const note = notesStore.mustGetNote(note_id);
 			selected_threads.clear();
@@ -238,7 +243,7 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		show_threads, showThreads, hideThreads,
 		threads_pinnable, pin_threads, pinThreads, unPinThreads, threads_width,
 		show_search, showSearch, hideSearch, cur_search, debounced_search,
-		selected_note_id, selectNote, deselectNote,
+		selected_note_id, toggleSelectNote, selectNote, deselectNote,
 		scrollToNote,
 		drillDownNote,
 		showEditThread, closeEditThread, show_edit_thread,

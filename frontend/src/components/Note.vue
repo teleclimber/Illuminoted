@@ -123,7 +123,7 @@ const classes = computed( () => {
 <template>
 	<div class="flex flex-col md:flex-row" :class="classes" :id="'stack-note-'+note.id" 
 		:data-node-id="note.id"
-		@click="uiStateStore.selectNote(note.id)"
+		@click="uiStateStore.toggleSelectNote(note.id)"
 		ref="note_elem">
 		<a href="#" class="flex-shrink-0 text-gray-500 md:w-28" @click.stop.prevent="uiStateStore.drillDownNote(note.id)">{{note.created.toLocaleTimeString()}}</a>
 		<div class="md:border-l-2 md:pl-1 border-amber-700 flex-grow md:pb-1" >
