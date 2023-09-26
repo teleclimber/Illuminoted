@@ -9,7 +9,9 @@ const threadsStore = useThreadsStore();
 const threads_sel = computed( () => {
 	const ret :Thread[] = []; 
 	uiStateStore.selected_threads.forEach( thread_id => {
-		if( og_parent_id.value !== null && !isDescendant(og_parent_id.value, thread_id)) {
+		if( uiStateStore.show_edit_thread !== undefined 
+			&& uiStateStore.show_edit_thread !== thread_id
+			&& !isDescendant(uiStateStore.show_edit_thread, thread_id)) {
 			ret.push(threadsStore.mustGetThread(thread_id));
 		}
 	});
