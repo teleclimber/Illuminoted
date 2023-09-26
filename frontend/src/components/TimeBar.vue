@@ -25,10 +25,10 @@ while(true) {
 const month_strs = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
 
 function monthClicked(event:Event, month:{year:number, month:number}) {
-	// straight to graph to load these notes.
-	// Though need to think about scrolling too.
-	const d = new Date(`${month.year}-${month.month+1}-01`);	// hard coded to 1st of month for now.
-	console.log(d);
+	const d = new Date;
+	d.setFullYear(month.year);
+	d.setMonth(month.month);
+	d.setDate(1);
 	noteStackStore.goToDate(d);
 }
 
@@ -41,7 +41,6 @@ function monthClicked(event:Event, month:{year:number, month:number}) {
 				<span v-if="m.month === 0" class="block text-sm font-bold text-gray-400">{{ m.year }}</span>
 				<span class="block uppercase text-sm text-gray-500">{{ month_strs[m.month] }}</span>
 			</div>
-
 		</div>
 	</div>
 </template>
