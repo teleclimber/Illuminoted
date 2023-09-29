@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, toRefs, ref, Ref, onMounted, onUnmounted} from 'vue';
+import {computed, ref, Ref, onMounted, onUnmounted} from 'vue';
 import { useNoteEditorStore } from '../stores/note_editor';
 import { useUIStateStore } from '../stores/ui_state';
 
@@ -15,7 +15,6 @@ const props = defineProps<{
 	note: Ref<Note>,
 	iObs: IntersectionObserver|undefined
 }>();
-const {note} = toRefs(props);
 
 const note_elem :Ref<HTMLElement|undefined> = ref();
 onMounted( () => {
@@ -35,7 +34,7 @@ type TextNode = {
 }
 
 const contents = computed( () => {
-	const c = note.value.contents;
+	const c = props.note.value.contents;
 	let ret :TextNode[] = [];
 	const url = new RegExp('https?:\/\/\\S+', 'igd');
 	let cur_i = 0;
@@ -83,12 +82,12 @@ const contents = computed( () => {
 	return ret;
 });
 
-const selected = computed( () => uiStateStore.selected_note_id === note.value.id );
+const selected = computed( () => uiStateStore.selected_note_id === props.note.value.id );
 
 const relations = computed( () => {
-	const note_id = note.value.id;
+	const note_id = props.note.value.id;
 	const ret: Record<'above'|'below', Record<string,number>> = {'above':{}, 'below': {}};
-	note.value.relations.forEach(r => {
+	props.note.value.relations.forEach(r => {
 		let dir:'above'|'below' = 'above';
 		if( r.target === note_id ) dir = 'below';
 		if( !ret[dir][r.label] ) ret[dir][r.label] = 0;
@@ -101,7 +100,7 @@ const relations = computed( () => {
 // But that measn doing this for every displayed note. Yikes.
 // Let's do this for now?
 const edit_rels = computed( () => {
-	return noteEditorStore.rel_edit.filter( (d) => d.note_id === note.value.id && (d.action==='' || d.action==='add')  );
+	return noteEditorStore.rel_edit.filter( (d) => d.note_id === props.note.value.id && (d.action==='' || d.action==='add')  );
 });
 
 const show_rel_controls = computed( () => selected.value && noteEditorStore.has_data );
@@ -110,7 +109,7 @@ const classes = computed( () => {
 	if( selected.value ) {
 		return ['bg-yellow-200', 'hover:bg-yellow-100']
 	}
-	else if( note.value.id === noteEditorStore.edit_note_id ) {
+	else if( props.note.value.id === noteEditorStore.edit_note_id ) {
 		return ['bg-lime-200'];
 	}
 	else {
@@ -121,11 +120,11 @@ const classes = computed( () => {
 </script>
 
 <template>
-	<div class="flex flex-col md:flex-row overflow-x-hidden" :class="classes" :id="'stack-note-'+note.id" 
-		:data-node-id="note.id"
-		@click="uiStateStore.toggleSelectNote(note.id)"
+	<div class="flex flex-col md:flex-row overflow-x-hidden" :class="classes" :id="'stack-note-'+note.value.id" 
+		:data-node-id="note.value.id"
+		@click="uiStateStore.toggleSelectNote(note.value.id)"
 		ref="note_elem">
-		<a href="#" class="flex-shrink-0 text-gray-500 md:w-28" @click.stop.prevent="uiStateStore.drillDownNote(note.id)">{{note.created.toLocaleTimeString()}}</a>
+		<a href="#" class="flex-shrink-0 text-gray-500 md:w-28" @click.stop.prevent="uiStateStore.drillDownNote(note.value.id)">{{note.value.created.toLocaleTimeString()}}</a>
 		<div class="md:border-l-2 md:pl-1 border-amber-700 flex-grow md:pb-1" >
 			<p class="">
 				<template v-for="c in contents">
