@@ -53,8 +53,6 @@ export function createThread(thread :{parent_id :number, name :string, created :
 	return id;
 }
 
-// TODO also need update thread? -> change parent and change name.
-
 export function createRelation(relation:{source :number, target :number, label: string, created :Date} ) {
 	getDB().query('INSERT INTO relations ("source", "target", "label", "created") '
 		+' VALUES(:source, :target, :label, :created)', relation);
@@ -62,8 +60,9 @@ export function createRelation(relation:{source :number, target :number, label: 
 
 export function deleteRelation(source:number, target:number, label: string) {
 	getDB().query('DELETE FROM relations WHERE '
-		+' source = :source, target = :target, label = :label',
+		+' source = :source AND target = :target AND label = :label',
 		{source, target, label});
+	// Should ensure at least one was deleted?
 }
 
 // Graph gets:
