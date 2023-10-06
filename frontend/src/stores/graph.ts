@@ -1,4 +1,4 @@
-import {computed, ref, shallowRef} from 'vue';
+import {computed, ref, shallowRef, isReactive} from 'vue';
 import type {Ref, ComputedRef} from 'vue';
 import { defineStore } from 'pinia';
 import { useThreadsStore } from './threads';

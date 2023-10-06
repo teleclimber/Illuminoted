@@ -75,7 +75,7 @@ const notes_left = computed( () => {
 			
 			<NoteStack ></NoteStack>
 
-			<div class="z-10">
+			<div class="z-20">
 				<NoteControls></NoteControls>
 				<NoteEditor v-if="noteEditorStore.show"></NoteEditor>
 				<ThreadEditor v-if="uiStateStore.show_edit_thread"></ThreadEditor>

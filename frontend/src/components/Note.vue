@@ -158,11 +158,11 @@ const classes = computed( () => {
 					<RelationIcon :label="label" class="h-5 w-5"></RelationIcon>
 				</span>
 			</span>
-
-			<div class="absolute" v-if="show_rel_controls">
-				<RelationsControls :note="note"></RelationsControls>
-				<!-- also controls for selected note: Edit, "reply", "thread-out"? -->
-			</div>
 		</div>
+		
+	</div>
+	<div class="relative" v-if="show_rel_controls">
+		<RelationsControls class="absolute right-0 z-10" style="top: -1.5rem" :note="note"></RelationsControls>
+		<!-- also controls for selected note: Edit, "reply", "thread-out"? -->
 	</div>
 </template>

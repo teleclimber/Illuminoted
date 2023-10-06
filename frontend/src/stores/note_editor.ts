@@ -1,4 +1,4 @@
-import { reactive, ref, computed } from 'vue';
+import { reactive, ref, computed, toRaw } from 'vue';
 import type {Ref} from 'vue';
 import { defineStore } from 'pinia';
 
@@ -97,7 +97,7 @@ export const useNoteEditorStore = defineStore('note-editor', () => {
 		if( !label ) throw new Error("what is this label? "+l);
 		if( label === 'thread-out' ) return;
 		const existing_i = rel_edit.findIndex(d => d.note_id === note_id && d.label === label);
-		const existing = rel_edit[existing_i];
+		const existing :EditRel|undefined = rel_edit[existing_i];
 		if( on ) {
 			if( existing ) {
 				if( existing.action === 'delete' ) existing.action = '';
@@ -134,13 +134,13 @@ export const useNoteEditorStore = defineStore('note-editor', () => {
 		if( edit_note_id.value !== undefined ) {
 			if( thread_id.value === undefined ) throw new Error("thread_id should not be false here.");
 			if( create_new_thread.value && new_thread_name.value === '' ) return false;
-			await notesStore.updateNote(edit_note_id.value, thread_id.value, contents.value, rel_edit, new Date,
+			await notesStore.updateNote(edit_note_id.value, thread_id.value, contents.value, toRaw(rel_edit), new Date,
 				create_new_thread.value ? new_thread_name.value : undefined);
 		}
 		else {
 			if( thread_id.value === undefined ) throw new Error("thread_id should not be false here.");
 			if( create_new_thread.value && new_thread_name.value === '' ) return false;
-			await notesStore.createNote(thread_id.value, contents.value, rel_edit, new Date, 
+			await notesStore.createNote(thread_id.value, contents.value, toRaw(rel_edit), new Date, 
 				create_new_thread.value ? new_thread_name.value : undefined);
 		}
 

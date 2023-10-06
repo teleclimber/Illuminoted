@@ -15,7 +15,7 @@ const context_thread = computed( () => {
 </script>
 <template>
 
-	<div class="absolute top-0 h-full inline-flex z-10"
+	<div class="absolute top-0 h-full inline-flex z-20"
 		:class="{'hidden':!uiStateStore.show_threads, 'w-screen': !uiStateStore.pin_threads}">
 		<div class="bg-gray-100  pb-4 overflow-y-scroll overflow-x-scroll"
 			:style="'width:'+uiStateStore.threads_width+'px'">

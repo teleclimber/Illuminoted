@@ -1,14 +1,13 @@
 <script setup lang="ts">
-	import {computed, toRefs, Ref} from 'vue';
+	import {Ref} from 'vue';
 	import type {Note} from '../stores/graph';
 	
-	const props = defineProps<{
+	defineProps<{
 		note: Ref<Note|undefined>,
 	}>();
-	const {note} = toRefs(props);
 </script>
 
 <template>
-	<span v-if="note" class="h-6 inline-block overflow-y-hidden">{{note.contents}}</span>
+	<span v-if="note" class="h-6 inline-block overflow-y-hidden">{{note.value?.contents}}</span>
 	<span v-else>Loading...</span>
 </template>

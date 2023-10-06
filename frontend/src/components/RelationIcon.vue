@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import {Ref, toRefs } from 'vue';
 
-const props = defineProps<{
+defineProps<{
 	label: string,
 }>();
-const {label} = toRefs(props);
 
 </script>
 
