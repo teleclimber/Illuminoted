@@ -69,7 +69,7 @@ async function saveNote() {
 }
 
 function removeRel(d:EditRel) {
-	//noteEditorStore.editRelation(d.note_id, d.label, false);
+	noteEditorStore.editRelation(d.note_id, d.label, false);
 }
 
 const btn_classes = ['border-y-2', 'bg-sky-600', 'hover:bg-sky-500',
@@ -97,7 +97,7 @@ const btn_classes = ['border-y-2', 'bg-sky-600', 'hover:bg-sky-500',
 					class="px-2 py-0" :class="btn_classes">X</button>
 			</p>
 		</div>
-		<p v-else class="italic text-amber-800 pb-1 flex">
+		<p v-else class="italic text-amber-800 mb-2 flex">
 			Thread:
 			<select v-model="noteEditorStore.thread_id" class="px-2 py-1 border bg-white">
 				<option v-for="thread in threads_sel" :value="thread.id">{{ thread.name }}</option>
@@ -107,14 +107,17 @@ const btn_classes = ['border-y-2', 'bg-sky-600', 'hover:bg-sky-500',
 			<button @click="createNewThread"
 				class="px-2 py-1 ml-2" :class="btn_classes">New thread</button>
 		</p>
-		<ul>
-			<li v-for="d in rels" class="flex flex-nowrap">
-				<RelationIcon :label="d.label" class="h-5 w-5 flex-shrink-0"></RelationIcon>
-				<span class="flex-shrink-0">{{sourceLabel(d.label)}}:</span>
-				<LazyNoteHint :note="notesStore.lazyGetNote(d.note_id)" class="flex-shrink"></LazyNoteHint>
+		<ul class="my-2">
+			<li v-for="d in rels" class="flex flex-nowrap items-baseline">
+				<span class="flex-shrink-0 w-24 flex justify-start">
+					<RelationIcon :label="d.label" class="h-4 w-4 flex-shrink-0"></RelationIcon>
+					<span class="px-1 italic text-sm text-gray-600">{{sourceLabel(d.label)}}:</span>
+				</span>
+				<LazyNoteHint :note="notesStore.lazyGetNote(d.note_id)" class="flex-shrink" @click.stop.prevent="uiStateStore.scrollToNote(d.note_id)"></LazyNoteHint>
 				<button
 					v-if="d.label !== 'thread-out'"
-					class="bg-blue-600 text-white px-2 py-1 text-sm uppercase rounded disabled:bg-gray-200"
+					class="px-3 py-1 "
+					:class="btn_classes"
 					@click.stop.prevent="removeRel(d)"> x </button>
 			</li>
 		</ul>

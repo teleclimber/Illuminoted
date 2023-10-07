@@ -8,6 +8,6 @@
 </script>
 
 <template>
-	<span v-if="note" class="h-6 inline-block overflow-y-hidden">{{note.value?.contents}}</span>
+	<span v-if="note" class="inline-block whitespace-nowrap overflow-hidden overflow-ellipsis">{{note.value?.contents}}</span>
 	<span v-else>Loading...</span>
 </template>

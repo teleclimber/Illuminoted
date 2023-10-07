@@ -137,21 +137,27 @@ const expand_thread = ref(false);
 	<div v-if="show" class="p-2 bg-white border-t-2">
 		<div v-if="rels.parent" class="flex flex-nowrap" :class="{'h-auto':expand_thread}"
 			@click="uiStateStore.scrollToNote(rels.parent?.note_id)">
-			<RelationIcon :label="rels.parent.label" class="h-5 w-5 flex-shrink-0"></RelationIcon>
-			<span class="flex-shrink-0">{{sourceLabel(rels.parent.label)}}:</span>
+			<span class="flex-shrink-0 w-24 flex justify-start">
+				<RelationIcon :label="rels.parent.label" class="h-4 w-4 flex-shrink-0"></RelationIcon>
+				<span class="flex-shrink-0 px-1 italic text-sm text-gray-600">{{sourceLabel(rels.parent.label)}}:</span>
+			</span>
 			<LazyNoteHint :note="rels.parent.note" class="flex-shrink"></LazyNoteHint>
 		</div>
 		<div v-if="thread" class="italic text-amber-800 h-6 overflow-y-hidden" :class="{'h-auto':expand_thread}" @click.stop.prevent="expand_thread = !expand_thread">Thread: {{thread.name}}</div>
 		<div v-for="r in rels.sources" class="flex flex-nowrap"
 			@click="uiStateStore.scrollToNote(r.note_id)">
-			<RelationIcon :label="r.label" class="h-5 w-5 flex-shrink-0"></RelationIcon>
-			<span class="flex-shrink-0">{{sourceLabel(r.label)}}:</span>
+			<span class="flex-shrink-0 w-24 flex justify-start">
+				<RelationIcon :label="r.label" class="h-4 w-4 flex-shrink-0"></RelationIcon>
+				<span class="flex-shrink-0 px-1 italic text-sm text-gray-600">{{sourceLabel(r.label)}}:</span>
+			</span>
 			<LazyNoteHint :note="r.note" class="flex-shrink"></LazyNoteHint>
 		</div>
 		<div v-for="r in rels.targets" class="flex flex-nowrap"
 			@click="uiStateStore.scrollToNote(r.note_id)">
-			<RelationIcon :label="r.label" class="h-5 w-5 mr-1 flex-shrink-0"></RelationIcon>
-			<span class="flex-shrink-0">{{targetLabel(r.label)}}:</span>
+			<span class="flex-shrink-0 w-24 flex justify-start">
+				<RelationIcon :label="r.label" class="h-4 w-4 mr-1 flex-shrink-0"></RelationIcon>
+				<span class="flex-shrink-0 px-1 italic text-sm text-gray-600">{{targetLabel(r.label)}}:</span>
+			</span>
 			<LazyNoteHint :note="r.note" class="flex-shrink"></LazyNoteHint>
 		</div>
 		
