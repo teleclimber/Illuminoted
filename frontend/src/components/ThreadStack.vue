@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed} from 'vue';
+import {computed, watch, ref} from 'vue';
 import { useThreadsStore } from '../stores/threads';
 import { useUIStateStore } from '../stores/ui_state';
 
@@ -10,6 +10,16 @@ const uiStateStore = useUIStateStore();
 
 const context_thread = computed( () => {
 	return threadsStore.getThread(uiStateStore.context_id);
+});
+
+const all_threads = ref(false);
+// Use one watcher to set the local value, 
+// and the other to use the all threads setter, which triggers note restack etc...
+watch( () => uiStateStore.all_threads, () => {
+	all_threads.value = uiStateStore.all_threads
+}, { immediate:true });
+watch( all_threads, () => {
+	uiStateStore.setAllThreads(all_threads.value);
 });
 
 </script>
@@ -50,6 +60,12 @@ const context_thread = computed( () => {
 						<path d="M8 4l8 0"></path>
 					</svg>
 				</button>
+			</div>
+			<div class="m-2">
+				<label class="px-3 py-2 block border border-gray-700 text-gray-700 rounded-lg" :class="[all_threads ? 'bg-white' :'bg-gray-200']">
+					<input type="checkbox" v-model="all_threads">
+					show notes from all threads
+				</label>
 			</div>
 			<ThreadUI v-if="context_thread"  :thread="context_thread" :is_root="true"></ThreadUI>
 		</div>

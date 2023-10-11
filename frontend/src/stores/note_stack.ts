@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { watch, reactive, computed, toRaw, ref } from 'vue';
 import { useUIStateStore } from './ui_state';
-import { useNotesGraphStore } from './graph';
+import { NoteParams, useNotesGraphStore } from './graph';
 
 export const useNoteStackStore = defineStore('note-stack', () => {
 	const uiStateStore = useUIStateStore();
@@ -24,7 +24,10 @@ export const useNoteStackStore = defineStore('note-stack', () => {
 
 	function reloadNotes() {
 		resetScroll();
-		const params = {search:uiStateStore.debounced_search, threads: toRaw(uiStateStore.selected_threads)};
+		const params:NoteParams = {
+			search:uiStateStore.debounced_search,
+			threads: uiStateStore.all_threads ? "all" : toRaw(uiStateStore.selected_threads)
+		};
 		if( target_date ) notesStore.loadNotesAroundDate(params, target_date);
 		else if( target_note_id ) notesStore.loadNotesAroundNote(params, target_note_id);
 		else notesStore.loadLatestNotes(params);

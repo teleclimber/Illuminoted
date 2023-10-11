@@ -41,7 +41,7 @@ export type Thread = {
 }
 
 export type NoteParams = {
-	threads: Set<number>,
+	threads: Set<number> | "all",
 	search: string
 }
 
@@ -52,7 +52,7 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 	let earliest :Date|undefined;
 	let latest :Date|undefined;
 
-	let threads :Set<number> = new Set;
+	let threads :Set<number>|"all" = new Set;
 	let search = '';
 
 	const notes :Ref<Map<number,Ref<Note>>> = shallowRef(new Map);
@@ -101,14 +101,14 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 			console.log("aborted loading because loading some notes is already underway")
 			return;	// throw new Error("notes are currently being loaded");
 		}
-		if( threads.size === 0 ) {
+		if( threads !== "all" && threads.size === 0 ) {
 			console.log("no notes to load because no threads");
 			return;
 		}
 		loading.value = true;
 		const resp = await fetch('/api/notes/?'
 			+ new URLSearchParams({
-				threads: Array.from(threads).join(','),
+				threads: threads === "all" ? "all" : Array.from(threads).join(','),
 				date: date ? date.toISOString() : '',
 				direction,
 				search

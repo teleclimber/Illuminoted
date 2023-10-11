@@ -7,6 +7,7 @@ import { useThreadsStore } from './threads';
 
 type State = {
 	selected_threads: Set<number>,
+	all_threads: boolean,
 	search: string
 }
 
@@ -113,8 +114,6 @@ export const useUIStateStore = defineStore('ui-state', () => {
 	}
 
 	const selected_threads :Set<number> = reactive(new Set);	// set of thread_ids for which we want to show notes
-	const expanded_threads :Set<number> = reactive(new Set);	// set of thread_ids for which we show the children
-
 	function threadClicked(id: number) {
 		if( selected_threads.has(id) ) deselectThread(id);
 		else selectThread(id);
@@ -132,6 +131,16 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		noteStackStore.reloadNotes();
 	}
 
+	const all_threads = ref(false);
+	function setAllThreads(v :boolean) {
+		if( all_threads.value === v ) return;
+		all_threads.value = v;
+		noteStackStore.setTargetDateToVisible();
+		updateUrlParams();
+		noteStackStore.reloadNotes();
+	}
+
+	const expanded_threads :Set<number> = reactive(new Set);	// set of thread_ids for which we show the children
 	function toggleExpandedThread(id:number) {
 		if( expanded_threads.has(id) ) expanded_threads.delete(id);
 		else expanded_threads.add(id);
@@ -155,6 +164,8 @@ export const useUIStateStore = defineStore('ui-state', () => {
 	function updateUrlParams() {
 		const params = new URLSearchParams(document.location.search);
 		params.set("threads", Array.from(selected_threads).join(','));
+		if( all_threads.value ) params.set("all-threads", "yes");
+		else params.delete("all-threads");
 		if( debounced_search.value ) params.set("search", debounced_search.value);
 		else params.delete("search");
 		
@@ -163,19 +174,22 @@ export const useUIStateStore = defineStore('ui-state', () => {
 	function readUrlParams() :State {
 		const ret :State = {
 			selected_threads: new Set,
+			all_threads: false,
 			search: ""
 		};
 		const params = new URLSearchParams(document.location.search);
 		const threads_str = params.get("threads");
 		if( threads_str ) threads_str.split(",").forEach( t => ret.selected_threads.add(Number(t)));
+		ret.all_threads = !!params.get("all-threads");
 		ret.search = params.get("search") || "";
 		
 		return ret;
 	}
 	addEventListener("popstate", (event) => {
-		console.log("pop state", event);
 		selected_threads.clear();
 		const state = readUrlParams();
+		console.log("pop state", state);
+		all_threads.value = state.all_threads;
 		cur_search.value = state.search;
 		debounced_search.value = state.search;
 		const expand :Set<number> = new Set;
@@ -238,6 +252,7 @@ export const useUIStateStore = defineStore('ui-state', () => {
 
 	return {
 		selected_threads, expanded_threads,
+		all_threads, setAllThreads,
 		threadClicked, selectThread, deselectThread, toggleExpandedThread, batchExpandThreads,
 		initDataFromURL, context_id,
 		show_threads, showThreads, hideThreads,

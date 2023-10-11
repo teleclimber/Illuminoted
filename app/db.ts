@@ -92,7 +92,7 @@ export type DBRelation = {
 	created: Date
 }
 
-export function getNotesByDateSplit(params :{threads: number[], from:Date, limit:number, search?:string}) :{notes:DBNote[], relations: DBRelation[]} {
+export function getNotesByDateSplit(params :{threads: number[]|undefined, from:Date, limit:number, search?:string}) :{notes:DBNote[], relations: DBRelation[]} {
 	const db = getDB();
 	const ret :{notes:DBNote[], relations: DBRelation[]} = {notes: [], relations: []};
 	params.limit = Math.round(params.limit/2);
@@ -105,20 +105,23 @@ export function getNotesByDateSplit(params :{threads: number[], from:Date, limit
 	return ret;
 }
 
-export function getNotesByDate(params :{threads: number[], from:Date, backwards: boolean, limit:number, search?:string}) :{notes:DBNote[], relations: DBRelation[]} {
+export function getNotesByDate(params :{threads: number[]|undefined, from:Date, backwards: boolean, limit:number, search?:string}) :{notes:DBNote[], relations: DBRelation[]} {
 	const db = getDB();
 	const ret :{notes:DBNote[], relations: DBRelation[]} = {notes: [], relations: []};
 	db.transaction( () => {
 		const args :{from:Date, limit:number, search?:string} = {from:params.from, limit:params.limit};
 		let notes_select = `SELECT notes.id, notes.thread, notes.created, notes.contents FROM notes `
-			+ `WHERE notes.thread IN (`+params.threads.join(",")+') ';
+			+ 'WHERE created ' +  (params.backwards ? '<= :from' : '>= :from');
+		if( params.threads !== undefined ) {
+			notes_select += ` AND notes.thread IN (`+params.threads.join(",")+') ';
+		}
 		if( params.search ) {
 			args.search = '%'+params.search+'%'
-			notes_select += 'AND notes.contents LIKE :search '
+			notes_select += ' AND notes.contents LIKE :search '
 		}		
-		notes_select += 'AND created '
-			+  (params.backwards ? `<= :from ORDER BY created DESC` : `>= :from ORDER BY created ASC`);
+		notes_select += ' ORDER BY created ' + (params.backwards ?  'DESC' : 'ASC');
 		notes_select += ' LIMIT :limit';
+		console.log(notes_select);
 		ret.notes = <DBNote[]> db.queryEntries( notes_select, args );
 
 		const rel_select = `WITH sel_notes AS ( ${notes_select}	)

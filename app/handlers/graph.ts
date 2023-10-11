@@ -31,7 +31,8 @@ export async function getNotes(ctx:Context) {
 		ctx.respondStatus(400, "no threads specified");
 		return;
 	}
-	const threads = threads_str.split(",").map( t => Number(t));
+	let threads = undefined;
+	if( threads_str !== "all" ) threads = threads_str.split(",").map( t => Number(t));
 	const date_str = params.get("date");
 	const date = date_str ? new Date(date_str) : new Date( Date.now().valueOf() + 1000000000 );
 	let dir = params.get("direction") || "before";
