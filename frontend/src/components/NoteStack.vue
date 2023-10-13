@@ -3,7 +3,7 @@ import {computed, watch, ref, onMounted, onUpdated, nextTick, onUnmounted} from 
 import type {Ref} from 'vue';
 import { useNotesGraphStore } from '../stores/graph';
 import type {Note} from '../stores/graph';
-import { useThreadsStore } from '../stores/threads';
+import { Thread, useThreadsStore } from '../stores/threads';
 import { useNoteStackStore } from '../stores/note_stack';
 
 import NoteUI from './Note.vue';
@@ -22,7 +22,7 @@ type StackItem = {
 	note: Ref<Note>,
 	date: string,
 	show_date: boolean,
-	thread: string,
+	thread: Thread | undefined,
 	show_thread: boolean,
 	is_root: boolean,
 	parent: Ref<string>
@@ -40,12 +40,8 @@ const stacks = computed( () => {
 		const show_date = !prev || prev.date !== date;
 		const is_root = n.value.thread === n.value.id;
 		const show_thread = !is_root && (!prev || show_date || prev.note.value.thread !== n.value.thread);
-		let thread = '';
-		if( show_thread ) {
-			const t = threadsStore.getThread(n.value.thread);
-			if( t ) thread = t.name;
-			else thread = '[thread not loaded]';
-		}
+		let thread;
+		if( show_thread ) thread = threadsStore.addLazyLoadThread(n.value.thread);
 		let parent = ref("loading...");
 		if( is_root ) {
 			const rel = n.value.relations.find( r => {
@@ -73,6 +69,8 @@ const stacks = computed( () => {
 		if( target_note_id === n.value.id ) cur_stack = ret.lower;
 		return s;
 	});
+
+	threadsStore.fetchLazyLoadThreads(1);
 
 	return ret;
 });
@@ -151,9 +149,8 @@ const no_notes = computed( () => notesStore.sorted_notes.length === 0 );
 					</div>
 					<div v-else-if="s.show_thread || s.show_date" class="text-sm flex">
 						<div v-if="s.thread" class="italic text-amber-800 h-5 overflow-clip">
-							{{s.thread}}
+							{{s.thread.name}}
 						</div>
-						<div v-else>(thread not found)</div>
 					</div>
 					<NoteUI :note="s.note" :iObs="notesIntersectObs"></NoteUI>
 				</template>
@@ -170,9 +167,8 @@ const no_notes = computed( () => notesStore.sorted_notes.length === 0 );
 				</div>
 				<div v-else-if="s.show_thread || s.show_date" class="text-sm flex">
 					<div v-if="s.thread" class="italic text-amber-800 h-5 overflow-clip">
-						{{s.thread}}
+						{{s.thread.name}}
 					</div>
-					<div v-else>(thread not found)</div>
 				</div>
 				<NoteUI :note="s.note" :iObs="notesIntersectObs"></NoteUI>
 			</template>

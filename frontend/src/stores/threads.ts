@@ -49,6 +49,7 @@ export const useThreadsStore = defineStore('threads', () => {
 			name: raw.name+'',
 			created: new Date(raw.created),
 			parent: raw.parent_id,
+			num_children: Number(raw.num_children)
 		});
 		else {
 			threads.set(id, {
@@ -88,6 +89,29 @@ export const useThreadsStore = defineStore('threads', () => {
 		return t;
 	}
 
+	const lazy_load_threads :Set<number> = new Set;
+	function addLazyLoadThread(id:number) :Thread {
+		let existing = threads.get(id);
+		if( existing ) return existing;
+
+		threads.set(id, {
+			id,
+			name: 'loading thread...',
+			created: new Date(),
+			parent: null,
+			num_children: 0
+		});
+
+		lazy_load_threads.add(id);
+		
+		return threads.get(id)!;	// we just added the id to threads, so it's not undefined
+	}
+	async function fetchLazyLoadThreads(root: number) {
+		if( lazy_load_threads.size === 0 ) return;
+		loadThreads(root, lazy_load_threads);
+		lazy_load_threads.clear();
+	}
+
 	async function updateThread(thread_id:number, parent_id:number, name:string) {
 		const thread = mustGetThread(thread_id);
 
@@ -125,6 +149,7 @@ export const useThreadsStore = defineStore('threads', () => {
 
 	return {
 		loadThreads, getLatestSubThreads, loadChildren, getChildren,
+		addLazyLoadThread, fetchLazyLoadThreads,
 		addExternallyCreatedThread,
 		getThread, mustGetThread,
 		updateThread
