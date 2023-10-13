@@ -212,6 +212,7 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		const state = readUrlParams();
 		cur_search.value = state.search;
 		debounced_search.value = state.search;
+		all_threads.value = state.all_threads;
 		if( state.selected_threads.size ) {
 			state.selected_threads.forEach( t => selected_threads.add(t) );
 			threadsStore.loadThreads(1, selected_threads).then( (threads) => {
@@ -239,10 +240,11 @@ export const useUIStateStore = defineStore('ui-state', () => {
 			// URL without search term is automatically added in a debounced_search watcher.
 			noteStackStore.reloadNotes();
 		}
-		else if( selected_threads.size !== 1) {
+		else if( selected_threads.size !== 1 || all_threads.value ) {
 			selectNote(note_id);
 			noteStackStore.setTargetNote(note_id);
 			const note = notesStore.mustGetNote(note_id);
+			all_threads.value = false;
 			selected_threads.clear();
 			selected_threads.add(note.value.thread);
 			updateUrlParams();
