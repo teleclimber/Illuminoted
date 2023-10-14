@@ -2,10 +2,13 @@
 	"name":	"Illuminoted",
 	"short-description": "Threaded Chronological Personal Notes",
 	"version": "0.4.0",
+	"accent-color": "rgb(255, 219, 158)",
+	"icon": "icon-160-160.png",
 	"authors": [{
 		"name": "Olivier Forget",
 		"email": "me@olivierforget.net",
 		"url": "https://olivierforget.net"
 	}],
-	"code": "https://github.com/teleclimber/Illuminoted"
+	"code": "https://github.com/teleclimber/Illuminoted",
+	"license": "MIT"
 }

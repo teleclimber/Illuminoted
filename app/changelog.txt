@@ -1,0 +1,13 @@
+0.4.0
+
+This is a significant rejigger of the Illuminoted app!
+
+- Threads are in sidebar on left side of app (can be pinned)
+- Threads are loaded incrementally and are ordered by last activity
+- App can be refreshed and preserve selected threads (using URL parameters)
+- Use browser history to go back to previous selected threads
+- Threads can be edited and moved
+- New Note edit interface (including changing thread)
+- Fixed bug in relations editing
+- Note listing preserves focus date on change of threads or search
+- "Show notes in all threads" feature
