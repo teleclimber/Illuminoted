@@ -1,3 +1,7 @@
+0.4.1
+
+Fixed error in initial appspace migration.
+
 0.4.0
 
 This is a significant rejigger of the Illuminoted app!

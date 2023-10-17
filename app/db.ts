@@ -1,11 +1,11 @@
 import app from './app.ts';
-import { DB } from "https://deno.land/x/sqlite@v3.7.2/mod.ts";
+import { DB } from "https://deno.land/x/sqlite@v3.8/mod.ts";
 
 const dbFilename = "notes.db";
 let db :DB|undefined;
 
 export function getDB() :DB {
-	if( db === undefined ) {
+	if( db === undefined || db.isClosed ) {
 		const start = Date.now();
 		db = new DB(app.appspacePath(dbFilename), {mode:"write"});
 		console.log(`getDB: ${Date.now() - start}`);
