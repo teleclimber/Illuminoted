@@ -20,7 +20,7 @@
 
 // create handler that gets and returns notes and relations for a... time period?
 
-import { Context } from 'https://deno.land/x/dropserver_app@v0.2.1/mod.ts';
+import { Context } from 'https://deno.land/x/dropserver_app@v0.2.2/mod.ts';
 import {getNotesByDate, getNotesByDateSplit, getThreadSubtree, getDescThreadsLastActive, getThreadChildrenLastActive, updateThread} from '../db.ts';
 import type {DBNote, DBThread, DBRelation} from '../db.ts';
 
@@ -48,7 +48,7 @@ export async function getNotes(ctx:Context) {
 		if( dir === "split" ) ret = await getNotesByDateSplit({threads, from:date, limit, search});
 		else ret = await getNotesByDate({threads, from: date, backwards: dir === "before", limit, search});
 	} catch(e) {
-		ctx.respondStatus(500, e);
+		ctx.respondStatus(500, (e as Error).message);
 		throw e;
 	}
 

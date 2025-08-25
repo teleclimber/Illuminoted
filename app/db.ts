@@ -1,5 +1,5 @@
 import app from './app.ts';
-import { DB } from "https://deno.land/x/sqlite@v3.8/mod.ts";
+import { DB } from "https://deno.land/x/sqlite@v3.9.1/mod.ts";
 
 const dbFilename = "notes.db";
 let db :DB|undefined;

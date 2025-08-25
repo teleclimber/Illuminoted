@@ -1,4 +1,4 @@
-import { Context } from 'https://deno.land/x/dropserver_app@v0.2.1/mod.ts';
+import { Context } from 'https://deno.land/x/dropserver_app@v0.2.2/mod.ts';
 import {createNote, updateNoteContents, createThread, createRelation, deleteRelation, getNoteById, rel_labels, updateNoteThread} from '../db.ts';
 import type {DBNote, DBRelation, RelationLabel} from '../db.ts';
 
@@ -15,7 +15,7 @@ export async function getNote(ctx:Context) {
 	try {
 		ret = await getNoteById(id);
 	} catch(e) {
-		ctx.respondWith(new Response(e, {status:500}));
+		ctx.respondWith(new Response((e as Error).message, {status:500}));
 		throw e;
 	}
 	ctx.respondJson(ret);

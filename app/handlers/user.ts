@@ -1,4 +1,4 @@
-import { Context } from 'https://deno.land/x/dropserver_app@v0.2.1/mod.ts';
+import { Context } from 'https://deno.land/x/dropserver_app@v0.2.2/mod.ts';
 import app from '../app.ts';
 
 export async function getCurrentUser(ctx:Context) {
