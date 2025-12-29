@@ -87,6 +87,8 @@ const notes_left = computed( () => {
 </template>
 
 <style>
+@import "tailwindcss";
+
 html, body {
 	height: 100%;
 }
