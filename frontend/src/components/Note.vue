@@ -128,7 +128,7 @@ const classes = computed( () => {
 		<div class="md:border-l-2 md:pl-1 border-amber-700 flex-grow md:pb-1" >
 			<p class="">
 				<template v-for="c in contents">
-					<a v-if="c.url" :href="c.url" class="text-blue-600 underline">
+					<a v-if="c.url" :href="c.url" class="text-blue-600 underline wrap-anywhere">
 						<template v-for="sub_c in c.subs">
 							<span v-if="sub_c.search_highlight" class="bg-pink-300">{{sub_c.text}}</span>
 							<span v-else>{{sub_c.text}}</span>
