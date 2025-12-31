@@ -29,7 +29,7 @@ function closeSearch() {
 </script>
 <template>
 	<div class="absolute top-0 bg-gray-200 p-2 box-border flex " :style="'left:'+x.left+'px; width:'+x.width+'px'">
-		<input type="text" ref="input_elem" v-model="uiStateStore.cur_search" class="flex-grow border border-gray-700" />
+		<input type="text" ref="input_elem" v-model="uiStateStore.cur_search" class="flex-grow border border-gray-700 bg-white" />
 		<span class="ml-2">
 			<button @click="closeSearch()"
 				class="py-1 px-2 border border-gray-700 text-gray-700 rounded-lg bg-gray-50 hover:bg-yellow-50">

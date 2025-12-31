@@ -80,7 +80,7 @@ const btn_classes = ['border-y-2', 'bg-sky-600', 'hover:bg-sky-500',
 </script>
 
 <template>
-	<div class="p-2 bg-gray-200 border-t-2">
+	<div class="p-2 bg-gray-200 border-t-1">
 		<div v-if="noteEditorStore.create_new_thread">
 			<p  class="italic text-amber-800 ">
 				Parent:
@@ -92,13 +92,13 @@ const btn_classes = ['border-y-2', 'bg-sky-600', 'hover:bg-sky-500',
 				New Thread:
 				<input type="text" 
 					v-model="noteEditorStore.new_thread_name" ref="new_thread_name_input"
-					class="border mx-1" />
+					class="border mx-1 bg-white" />
 				<button @click="noteEditorStore.useExistingThread()"
 					class="px-2 py-0" :class="btn_classes">X</button>
 			</p>
 		</div>
-		<p v-else class="italic text-amber-800 mb-2 flex">
-			Thread:
+		<p v-else class="text-amber-800 mb-2 flex">
+			<span class="pt-1 pr-1">Thread:</span>
 			<select v-model="noteEditorStore.thread_id" class="px-2 py-1 border bg-white">
 				<option v-for="thread in threads_sel" :value="thread.id">{{ thread.name }}</option>
 			</select>
@@ -124,7 +124,7 @@ const btn_classes = ['border-y-2', 'bg-sky-600', 'hover:bg-sky-500',
 		<div>
 			<textarea ref="text_input_elem"
 				v-model="noteEditorStore.contents"
-				class="w-full h-32 border"></textarea>
+				class="w-full h-32 border bg-white"></textarea>
 		</div>
 		<div class="flex justify-between mt-1">
 			<button

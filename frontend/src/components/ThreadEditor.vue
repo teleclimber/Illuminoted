@@ -75,7 +75,7 @@ const btn_classes = ['border-y-2', 'bg-sky-600', 'hover:bg-sky-500',
 </script>
 
 <template>
-	<div class="p-2 bg-gray-200 border-t-2">
+	<div class="p-2 bg-gray-200 border-t-1">
 		<p  class="italic text-amber-800 ">
 			Parent:
 			<select v-model="parent_id" class="px-2 py-1 border bg-white">
@@ -86,7 +86,7 @@ const btn_classes = ['border-y-2', 'bg-sky-600', 'hover:bg-sky-500',
 			Thread Name:
 			<input type="text" 
 				v-model="thread_name" ref="thread_name_input"
-				class="border mx-1" />
+				class="border mx-1 bg-white px-2" />
 		</p>
 		<div class="flex justify-between">
 			<button @click="uiStateStore.closeEditThread()" class="px-3 py-1" :class="btn_classes">cancel</button>
