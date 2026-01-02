@@ -21,11 +21,12 @@
 // create handler that gets and returns notes and relations for a... time period?
 
 import { Context } from 'https://deno.land/x/dropserver_app@v0.2.2/mod.ts';
-import {getNotesByDate, getNotesByDateSplit, getThreadSubtree, getDescThreadsLastActive, getThreadChildrenLastActive, updateThread} from '../db.ts';
+import {getNotesByDate, getNotesByDateSplit, getThreadSubtree, getDescThreadsLastActive, getThreadChildrenLastActive, updateThread, getNoteById, getNotesByNoteSplit} from '../db.ts';
 import type {DBNote, DBThread, DBRelation} from '../db.ts';
 
 export async function getNotes(ctx:Context) {
 	const params = ctx.url.searchParams;
+
 	const threads_str = params.get('threads')
 	if( !threads_str ) {
 		ctx.respondStatus(400, "no threads specified");
@@ -33,20 +34,34 @@ export async function getNotes(ctx:Context) {
 	}
 	let threads = undefined;
 	if( threads_str !== "all" ) threads = threads_str.split(",").map( t => Number(t));
-	const date_str = params.get("date");
-	const date = date_str ? new Date(date_str) : new Date( Date.now().valueOf() + 1000000000 );
-	let dir = params.get("direction") || "before";
-	if( !["before", "after", "split"].includes(dir) ) {
-		ctx.respondStatus(400, "no direction, or incorrect direction specified: "+dir);
-		return;
+
+	let date = new Date( Date.now().valueOf() + 1000000000 );
+	let dir = "before";
+
+	const note_id = params.get("note_id") ? Number(params.get("note_id")) : undefined;
+	if( note_id ) {
+		dir = "split";
 	}
+	else {
+		const date_str = params.get("date");
+		if( date_str ) {
+			date = new Date(date_str);
+			dir = params.get("direction") || "before";
+			if( !["before", "after", "split"].includes(dir) ) {
+				ctx.respondStatus(400, "no direction, or incorrect direction specified: "+dir);
+				return;
+			}
+		}
+	}
+
 	let limit = 100;	// for now.
 	const search = params.get("search") || '';
 
 	let ret:{notes:DBNote[], relations: DBRelation[]};
 	try {
-		if( dir === "split" ) ret = await getNotesByDateSplit({threads, from:date, limit, search});
-		else ret = await getNotesByDate({threads, from: date, backwards: dir === "before", limit, search});
+		if( note_id ) ret = await getNotesByNoteSplit({threads, note_id, limit, search});
+		else if( dir === "split" ) ret = await getNotesByDateSplit({threads, from:date, limit, search});
+		else ret = await getNotesByDate({threads, from: date, backwards: dir === "before", equal: true, limit, search});
 	} catch(e) {
 		ctx.respondStatus(500, (e as Error).message);
 		throw e;

@@ -40,12 +40,9 @@ export const useNoteStackStore = defineStore('note-stack', () => {
 	}
 
 	function goToNote(id:number) {
-		// first determine if the note is loaded or not
-		// if loaded, scroll to it.
-		// If not loaded consider loading the note and adjacent notes?
-		// then upon loading have to scroll to it and highlight.
-		// Worried how this will end up feeling UX wise. It may be jarring to get a whole new stack just to see a note.
-		// .. and how do you go back to where you were after seeing that note?
+		setTargetNote(id);
+		resetScroll();
+		reloadNotes();
 	}
 
 	function setTargetNote(id:number) {

@@ -6,6 +6,15 @@ import { useThreadsStore } from './threads';
 export type RelationLabel = 'thread-out' | 'in-reply-to' | 'see-also';
 export const rel_labels :RelationLabel[] = ['thread-out', 'in-reply-to', 'see-also'];
 
+type NoteIdQuery = {
+	note_id: number
+}
+type NoteDateQuery = {
+	date: Date,
+	direction: "before"|"after"|"split"
+}
+type  NoteQuery = NoteIdQuery | NoteDateQuery;
+
 export interface Relation {
 	source: number,
 	target: number,
@@ -75,28 +84,41 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 	// (implies a change to search or threads)
 	async function loadLatestNotes(params: NoteParams) {
 		resetNotes(params);
-		await loadNotes(undefined, "before");
+		await loadNotes(undefined);
 	}
 	async function loadNotesAroundDate(params: NoteParams, around_date: Date) {
 		resetNotes(params);
-		loadNotes(around_date, "split");
+		loadNotes({
+			date: around_date,
+			direction: "split"
+		});
 	}
 	async function loadNotesAroundNote(params: NoteParams, note_id: number) {
-		const note = mustGetNote(note_id);
 		resetNotes(params);
-		loadNotes(note.value.created, "split");
+		loadNotes({
+			note_id,
+			direction: "split"
+		});
 	}
 
 	// Add to notes already loaded:
 	async function getMoreNotesBefore() {
-		await loadNotes(earliest, "before");
+		if( earliest === undefined ) return;
+		await loadNotes({
+			date: earliest,
+			direction: "before"
+		});
 	}
 	async function getMoreNotesAfter() {
-		await loadNotes(latest, "after");
+		if( latest === undefined ) return;
+		await loadNotes({
+			date: latest,
+			direction: "after"
+		});
 	}
 
 	const loading = ref(false);
-	async function loadNotes(date:Date|undefined, direction:"before"|"after"|"split") {
+	async function loadNotes(q :NoteQuery|undefined) {
 		if( loading.value ) {
 			console.log("aborted loading because loading some notes is already underway")
 			return;	// throw new Error("notes are currently being loaded");
@@ -106,13 +128,21 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 			return;
 		}
 		loading.value = true;
-		const resp = await fetch('/api/notes/?'
-			+ new URLSearchParams({
-				threads: threads === "all" ? "all" : Array.from(threads).join(','),
-				date: date ? date.toISOString() : '',
-				direction,
-				search
-			}));
+		const params = new URLSearchParams({
+			threads: threads === "all" ? "all" : Array.from(threads).join(','),
+			search
+		});
+
+		if( q === undefined ) {
+			// no-op
+		} else if ('date' in q) {
+			params.set('date', q.date.toISOString());
+			params.set('direction', q.direction);
+		} else if ('note_id' in q) {
+			params.set('note_id', q.note_id + '');
+		}
+
+		const resp = await fetch('/api/notes/?' + params);
 		if( !resp.ok ) throw new Error("fetch not OK");
 		const data = <{relations: any[], notes: any[]}>await resp.json();
 		if( !Array.isArray(data.relations) ) throw new Error("expected an array of relations");

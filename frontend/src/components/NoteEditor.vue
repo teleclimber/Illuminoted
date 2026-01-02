@@ -5,6 +5,7 @@ import { useUIStateStore } from '../stores/ui_state';
 import { useNotesGraphStore } from '../stores/graph';
 import { useNoteEditorStore } from '../stores/note_editor';
 import { Thread, useThreadsStore } from '../stores/threads';
+import { useNoteStackStore } from '../stores/note_stack';
 
 import type { EditRel } from '../stores/graph';
 
@@ -15,6 +16,7 @@ const uiStateStore = useUIStateStore();
 const threadsStore = useThreadsStore();
 const notesStore = useNotesGraphStore();
 const noteEditorStore = useNoteEditorStore();
+const noteStackStore = useNoteStackStore();
 
 const text_input_elem :Ref<HTMLInputElement|undefined> = ref();
 const new_thread_name_input :Ref<HTMLInputElement|undefined> = ref();
@@ -113,7 +115,7 @@ const btn_classes = ['border-y-2', 'bg-sky-600', 'hover:bg-sky-500',
 					<RelationIcon :label="d.label" class="h-4 w-4 flex-shrink-0"></RelationIcon>
 					<span class="px-1 italic text-sm text-gray-600">{{sourceLabel(d.label)}}:</span>
 				</span>
-				<LazyNoteHint :note="notesStore.lazyGetNote(d.note_id)" class="flex-shrink" @click.stop.prevent="uiStateStore.scrollToNote(d.note_id)"></LazyNoteHint>
+				<LazyNoteHint :note="notesStore.lazyGetNote(d.note_id)" class="flex-shrink" @click.stop.prevent="noteStackStore.goToNote(d.note_id)"></LazyNoteHint>
 				<button
 					v-if="d.label !== 'thread-out'"
 					class="px-3 py-1 "

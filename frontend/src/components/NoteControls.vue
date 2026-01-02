@@ -3,6 +3,7 @@ import {ref, computed, ComputedRef, Ref } from 'vue';
 import { useNotesGraphStore } from '../stores/graph';
 import { useNoteEditorStore } from '../stores/note_editor';
 import { useUIStateStore } from '../stores/ui_state';
+import { useNoteStackStore } from '../stores/note_stack';
 
 import type {Note} from '../stores/graph';
 import LazyNoteHint from './LazyNoteHint.vue';
@@ -13,6 +14,7 @@ const notesStore = useNotesGraphStore();
 const threadsStore = useThreadsStore();
 const noteEditorStore = useNoteEditorStore();
 const uiStateStore = useUIStateStore();
+const noteStackStore = useNoteStackStore();
 
 const note = computed( () => {
 	if( !uiStateStore.selected_note_id ) return undefined;
@@ -136,7 +138,7 @@ const expand_thread = ref(false);
 <template>
 	<div v-if="show" class="p-2 bg-white border-t-2">
 		<div v-if="rels.parent" class="flex flex-nowrap" :class="{'h-auto':expand_thread}"
-			@click="uiStateStore.scrollToNote(rels.parent?.note_id)">
+			@click="noteStackStore.goToNote(rels.parent?.note_id)">
 			<span class="flex-shrink-0 w-24 flex justify-start">
 				<RelationIcon :label="rels.parent.label" class="h-4 w-4 flex-shrink-0"></RelationIcon>
 				<span class="flex-shrink-0 px-1 italic text-sm text-gray-600">{{sourceLabel(rels.parent.label)}}:</span>
@@ -145,7 +147,7 @@ const expand_thread = ref(false);
 		</div>
 		<div v-if="thread" class="italic text-amber-800 h-6 overflow-y-hidden" :class="{'h-auto':expand_thread}" @click.stop.prevent="expand_thread = !expand_thread">Thread: {{thread.name}}</div>
 		<div v-for="r in rels.sources" class="flex flex-nowrap"
-			@click="uiStateStore.scrollToNote(r.note_id)">
+			@click="noteStackStore.goToNote(r.note_id)">
 			<span class="flex-shrink-0 w-24 flex justify-start">
 				<RelationIcon :label="r.label" class="h-4 w-4 flex-shrink-0"></RelationIcon>
 				<span class="flex-shrink-0 px-1 italic text-sm text-gray-600">{{sourceLabel(r.label)}}:</span>
@@ -153,7 +155,7 @@ const expand_thread = ref(false);
 			<LazyNoteHint :note="r.note" class="flex-shrink"></LazyNoteHint>
 		</div>
 		<div v-for="r in rels.targets" class="flex flex-nowrap"
-			@click="uiStateStore.scrollToNote(r.note_id)">
+			@click="noteStackStore.goToNote(r.note_id)">
 			<span class="flex-shrink-0 w-24 flex justify-start">
 				<RelationIcon :label="r.label" class="h-4 w-4 mr-1 flex-shrink-0"></RelationIcon>
 				<span class="flex-shrink-0 px-1 italic text-sm text-gray-600">{{targetLabel(r.label)}}:</span>

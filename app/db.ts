@@ -97,21 +97,44 @@ export function getNotesByDateSplit(params :{threads: number[]|undefined, from:D
 	const ret :{notes:DBNote[], relations: DBRelation[]} = {notes: [], relations: []};
 	params.limit = Math.round(params.limit/2);
 	db.transaction( () => {
-		const before = getNotesByDate(Object.assign(params, {backwards:true}));
-		const after = getNotesByDate(Object.assign(params, {backwards:false}));
+		const before = getNotesByDate(Object.assign(params, {backwards:true, equal:true}));
+		const after = getNotesByDate(Object.assign(params, {backwards:false, equal:false}));
 		ret.notes = before.notes.concat(after.notes);
 		ret.relations = before.relations.concat(after.relations);
 	});
 	return ret;
 }
 
-export function getNotesByDate(params :{threads: number[]|undefined, from:Date, backwards: boolean, limit:number, search?:string}) :{notes:DBNote[], relations: DBRelation[]} {
+export function getNotesByNoteSplit(params :{threads: number[]|undefined, note_id:number, limit:number, search?:string}) :{notes:DBNote[], relations: DBRelation[]} {
+	const db = getDB();
+	const ret :{notes:DBNote[], relations: DBRelation[]} = {notes: [], relations: []};
+	params.limit = Math.round(params.limit/2);
+	db.transaction( () => {
+		const { note, relations } = getNoteById(params.note_id);
+		const date = note.created;
+		const p = {
+			threads: params.threads,
+			from: date,
+			limit: params.limit,
+			search: params.search
+		};
+		const before = getNotesByDate(Object.assign(p, {backwards:true, equal:false}));
+		const after = getNotesByDate(Object.assign(p, {backwards:false, equal:false}));
+		ret.notes = before.notes.concat([note], after.notes);
+		ret.relations = before.relations.concat(relations, after.relations);
+	});
+	return ret;
+}
+
+export function getNotesByDate(params :{threads: number[]|undefined, from:Date, backwards: boolean, equal: boolean, limit:number, search?:string}) :{notes:DBNote[], relations: DBRelation[]} {
 	const db = getDB();
 	const ret :{notes:DBNote[], relations: DBRelation[]} = {notes: [], relations: []};
 	db.transaction( () => {
+		let cmp = params.backwards ? '<' : '>';
+		if( params.equal ) cmp += '=';
 		const args :{from:Date, limit:number, search?:string} = {from:params.from, limit:params.limit};
 		let notes_select = `SELECT notes.id, notes.thread, notes.created, notes.contents FROM notes `
-			+ 'WHERE created ' +  (params.backwards ? '<= :from' : '>= :from');
+			+ 'WHERE created ' +  cmp + ':from';
 		if( params.threads !== undefined ) {
 			notes_select += ` AND notes.thread IN (`+params.threads.join(",")+') ';
 		}
