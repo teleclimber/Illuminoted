@@ -25,7 +25,8 @@ type StackItem = {
 	thread: Thread | undefined,
 	show_thread: boolean,
 	is_root: boolean,
-	parent: Ref<string>
+	parent: Ref<string>,
+	flash: boolean
 }
 
 const stacks = computed( () => {
@@ -61,12 +62,16 @@ const stacks = computed( () => {
 			thread,
 			show_thread,
 			is_root,
-			parent
+			parent,
+			flash: false
 		};
 		prev = s;
 		if( target_date && target_date < n.value.created ) cur_stack = ret.lower;
+		if( target_note_id === n.value.id ) {
+			s.flash = true;
+			cur_stack = ret.lower;
+		}
 		cur_stack.push(s);
-		if( target_note_id === n.value.id ) cur_stack = ret.lower;
 		return s;
 	});
 
@@ -152,7 +157,7 @@ const no_notes = computed( () => notesStore.sorted_notes.length === 0 );
 							{{s.thread.name}}
 						</div>
 					</div>
-					<NoteUI :note="s.note" :iObs="notesIntersectObs"></NoteUI>
+					<NoteUI :note="s.note" :iObs="notesIntersectObs" :flash="s.flash"></NoteUI>
 				</template>
 			</div>
 		</div>
@@ -170,7 +175,7 @@ const no_notes = computed( () => notesStore.sorted_notes.length === 0 );
 						{{s.thread.name}}
 					</div>
 				</div>
-				<NoteUI :note="s.note" :iObs="notesIntersectObs"></NoteUI>
+				<NoteUI :note="s.note" :iObs="notesIntersectObs" :flash="s.flash"></NoteUI>
 			</template>
 		</div>
 		<div v-if="no_notes" class="text-gray-500 italic no-anchor">No notes... :(</div>

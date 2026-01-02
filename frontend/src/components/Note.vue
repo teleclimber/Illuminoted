@@ -13,7 +13,8 @@ const uiStateStore = useUIStateStore();
 
 const props = defineProps<{
 	note: Ref<Note>,
-	iObs: IntersectionObserver|undefined
+	iObs: IntersectionObserver|undefined,
+	flash: boolean
 }>();
 
 const note_elem :Ref<HTMLElement|undefined> = ref();
@@ -106,15 +107,18 @@ const edit_rels = computed( () => {
 const show_rel_controls = computed( () => selected.value && noteEditorStore.has_data );
 
 const classes = computed( () => {
+	let ret = [];
 	if( selected.value ) {
-		return ['bg-yellow-200', 'hover:bg-yellow-100']
+		ret = ['bg-yellow-200', 'hover:bg-yellow-100']
 	}
 	else if( props.note.value.id === noteEditorStore.edit_note_id ) {
-		return ['bg-lime-200'];
+		ret = ['bg-lime-200'];
 	}
 	else {
-		return ['hover:bg-yellow-50'];
+		ret = ['hover:bg-yellow-50'];
 	}
+	if( props.flash ) ret.push('flash-highlight');
+	return ret;
 });
 
 </script>
@@ -166,3 +170,19 @@ const classes = computed( () => {
 		<!-- also controls for selected note: Edit, "reply", "thread-out"? -->
 	</div>
 </template>
+
+<style scoped>
+.flash-highlight {
+	animation-name: flash;
+	animation-duration: 3s;
+	animation-timing-function: ease-in;
+}
+@keyframes flash {
+	from {
+		background-color: rgb(246, 255, 73);
+	}
+	to {
+		background-color: unset;
+	}
+}
+</style>
