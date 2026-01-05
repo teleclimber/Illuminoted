@@ -138,7 +138,7 @@ const expand_thread = ref(false);
 <template>
 	<div v-if="show" class="p-2 bg-white border-t-2">
 		<div v-if="rels.parent" class="flex flex-nowrap" :class="{'h-auto':expand_thread}"
-			@click="noteStackStore.goToNote(rels.parent?.note_id)">
+			@click="uiStateStore.goToNote(note?.id, rels.parent?.note_id)">
 			<span class="flex-shrink-0 w-24 flex justify-start">
 				<RelationIcon :label="rels.parent.label" class="h-4 w-4 flex-shrink-0"></RelationIcon>
 				<span class="flex-shrink-0 px-1 italic text-sm text-gray-600">{{sourceLabel(rels.parent.label)}}:</span>
@@ -147,7 +147,7 @@ const expand_thread = ref(false);
 		</div>
 		<div v-if="thread" class="italic text-amber-800 h-6 overflow-y-hidden" :class="{'h-auto':expand_thread}" @click.stop.prevent="expand_thread = !expand_thread">Thread: {{thread.name}}</div>
 		<div v-for="r in rels.sources" class="flex flex-nowrap"
-			@click="noteStackStore.goToNote(r.note_id)">
+			@click="uiStateStore.goToNote(note?.id, r.note_id)">
 			<span class="flex-shrink-0 w-24 flex justify-start">
 				<RelationIcon :label="r.label" class="h-4 w-4 flex-shrink-0"></RelationIcon>
 				<span class="flex-shrink-0 px-1 italic text-sm text-gray-600">{{sourceLabel(r.label)}}:</span>
@@ -155,7 +155,7 @@ const expand_thread = ref(false);
 			<LazyNoteHint :note="r.note" class="flex-shrink"></LazyNoteHint>
 		</div>
 		<div v-for="r in rels.targets" class="flex flex-nowrap"
-			@click="noteStackStore.goToNote(r.note_id)">
+			@click="uiStateStore.goToNote(note?.id, r.note_id)">
 			<span class="flex-shrink-0 w-24 flex justify-start">
 				<RelationIcon :label="r.label" class="h-4 w-4 mr-1 flex-shrink-0"></RelationIcon>
 				<span class="flex-shrink-0 px-1 italic text-sm text-gray-600">{{targetLabel(r.label)}}:</span>

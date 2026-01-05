@@ -8,7 +8,8 @@ import { useThreadsStore } from './threads';
 type State = {
 	selected_threads: Set<number>,
 	all_threads: boolean,
-	search: string
+	search: string,
+	note_id: number|undefined
 }
 
 export const useUIStateStore = defineStore('ui-state', () => {
@@ -107,10 +108,10 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		selected_note_id.value = undefined;
 	}
 
-	function scrollToNote(note_id:number|undefined) {
-		if( !note_id ) return;	// allows simpler code in templates
-		// temporary hack.
-		document.querySelector('#stack-note-'+note_id)?.scrollIntoView();
+	function goToNote(from_note_id:number|undefined, to_note_id:number) {
+		if( from_note_id ) updateUrlParams(from_note_id);
+		noteStackStore.goToNote(to_note_id);
+		updateUrlParams(to_note_id);
 	}
 
 	const selected_threads :Set<number> = reactive(new Set);	// set of thread_ids for which we want to show notes
@@ -161,28 +162,31 @@ export const useUIStateStore = defineStore('ui-state', () => {
 	}
 
 	// URL handling
-	function updateUrlParams() {
+	function updateUrlParams(note_id?:number) {
 		const params = new URLSearchParams(document.location.search);
 		params.set("threads", Array.from(selected_threads).join(','));
 		if( all_threads.value ) params.set("all-threads", "yes");
 		else params.delete("all-threads");
 		if( debounced_search.value ) params.set("search", debounced_search.value);
 		else params.delete("search");
-		
+		if( note_id ) params.set("note_id", note_id+'');
+		else params.delete("note_id");
 		history.pushState(null, '', '?'+params.toString());
 	}
 	function readUrlParams() :State {
 		const ret :State = {
 			selected_threads: new Set,
 			all_threads: false,
-			search: ""
+			search: "",
+			note_id: undefined
 		};
 		const params = new URLSearchParams(document.location.search);
 		const threads_str = params.get("threads");
 		if( threads_str ) threads_str.split(",").forEach( t => ret.selected_threads.add(Number(t)));
 		ret.all_threads = !!params.get("all-threads");
 		ret.search = params.get("search") || "";
-		
+		ret.note_id = params.get("note_id") ? Number(params.get("note_id")) : undefined;
+
 		return ret;
 	}
 	addEventListener("popstate", (event) => {
@@ -202,7 +206,13 @@ export const useUIStateStore = defineStore('ui-state', () => {
 			}
 		});
 		batchExpandThreads(Array.from(expand));
-		noteStackStore.setTargetDateToVisible();
+
+		if( state.note_id ) {
+			noteStackStore.setTargetNote(state.note_id);
+		}
+		else {
+			noteStackStore.setTargetDateToVisible();
+		}
 		noteStackStore.reloadNotes();
 	});
 
@@ -213,6 +223,9 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		cur_search.value = state.search;
 		debounced_search.value = state.search;
 		all_threads.value = state.all_threads;
+		if( state.note_id ) {
+			noteStackStore.setTargetNote(state.note_id);
+		}
 		if( state.selected_threads.size ) {
 			state.selected_threads.forEach( t => selected_threads.add(t) );
 			threadsStore.loadThreads(1, selected_threads).then( (threads) => {
@@ -261,7 +274,7 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		threads_pinnable, pin_threads, pinThreads, unPinThreads, threads_width,
 		show_search, showSearch, hideSearch, cur_search, debounced_search,
 		selected_note_id, toggleSelectNote, selectNote, deselectNote,
-		scrollToNote,
+		goToNote,
 		drillDownNote,
 		showEditThread, closeEditThread, show_edit_thread,
 		win_height, win_width
