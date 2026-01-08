@@ -283,7 +283,8 @@ export type DBThread = {
 	name: string,
 	parent_id: number | null,
 	created: Date,
-	num_children: number
+	num_children: number,
+	last: Date
 }
 
 // get descendants of thread, by deep-last-active
@@ -357,7 +358,8 @@ export function getThreadSubtree(root: number, leaves: number[]) :DBThread[] {
 			parent_id: null,
 			name: "",
 			created: new Date,
-			num_children: 0
+			num_children: 0,
+			last: new Date
 		}
 	});
 
@@ -373,7 +375,8 @@ export function getThreadSubtree(root: number, leaves: number[]) :DBThread[] {
 					parent_id: null,
 					name: "",
 					created: new Date,
-					num_children: 0
+					num_children: 0,
+					last: new Date
 				});
 			}
 		}
@@ -386,11 +389,13 @@ function getThread(id: number) :DBThread {
 	const db = getDB();
 	const q = db.prepareQuery<never,DBThread,{id:number}>(`
 		SELECT threads.id, threads.name, threads.parent_id, threads.created,
-		(SELECT count(*) FROM threads WHERE threads.parent_id = :id) AS num_children
+		(SELECT count(*) FROM threads WHERE threads.parent_id = :id) AS num_children,
+		(SELECT max(created) FROM notes WHERE thread = :id) as last
 		FROM threads WHERE threads.id = :id
 	`);
 	const row = q.firstEntry({id});
 	if( !row ) throw new Error("missing thread: "+id);
+	if( !row.last ) row.last = row.created;
 	q.finalize();
 	return row;
 }

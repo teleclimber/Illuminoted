@@ -6,12 +6,14 @@ export type Thread = {
 	parent: number|null,
 	name: string,
 	created: Date,
-	num_children: number
+	num_children: number,
+	last: Date
 }
 
 export const useThreadsStore = defineStore('threads', () => {
 	const threads :Map<number,Thread> = reactive(new Map); 
 
+	// load threads (used in page init when threads are specified in query params)
 	async function loadThreads(root:number, threads:Set<number>) {
 		const resp = await fetch('/api/threads/'+root+'?threads='+Array.from(threads).join(","));
 		if( !resp.ok ) throw new Error("fetch not OK");
@@ -23,6 +25,8 @@ export const useThreadsStore = defineStore('threads', () => {
 		});
 		return ids;
 	}
+	// load threads with recent activity
+	// Used on page init when no threads specified
 	async function getLatestSubThreads(root:number, limit: number) {
 		const resp = await fetch('/api/threads/'+root+'?deep=true&limit='+limit);
 		if( !resp.ok ) throw new Error("fetch not OK");
@@ -34,11 +38,18 @@ export const useThreadsStore = defineStore('threads', () => {
 		});
 		return ids;
 	}
+	// used by Thread.vue in onclick for showing more children
 	async function loadChildren(root:number, limit: number) {
 		const resp = await fetch('/api/threads/'+root+'?limit='+limit);
 		if( !resp.ok ) throw new Error("fetch not OK");
 		const data = <any[]>await resp.json();
 		data.forEach( ingestThread );
+	}
+
+	async function reloadChildren(root:number) {
+		// get number of children, if less than 10, use 10 to ensure it can grow if child is added.
+		const num = getChildren(root).length;
+		await loadChildren(root, num);
 	}
 
 	function ingestThread(raw:any) {
@@ -49,7 +60,8 @@ export const useThreadsStore = defineStore('threads', () => {
 			name: raw.name+'',
 			created: new Date(raw.created),
 			parent: raw.parent_id,
-			num_children: Number(raw.num_children)
+			num_children: Number(raw.num_children),
+			last: new Date(raw.last)
 		});
 		else {
 			threads.set(id, {
@@ -57,11 +69,13 @@ export const useThreadsStore = defineStore('threads', () => {
 				name: raw.name+'',
 				created: new Date(raw.created),
 				parent: raw.parent_id,
-				num_children: Number(raw.num_children)
+				num_children: Number(raw.num_children),
+				last: new Date(raw.last)
 			});
 		}
 		return id;
 	}
+	// Used when creating a note in graph.ts also creates a new thread
 	function addExternallyCreatedThread(id:number, parent_id: number, name: string, created:Date) {
 		mustGetThread(parent_id).num_children++;	//sporty
 		threads.set(id, {
@@ -69,7 +83,8 @@ export const useThreadsStore = defineStore('threads', () => {
 			name: name+'',
 			created: created,
 			parent: parent_id,
-			num_children: 0	// just created so the assumption is there are no children...
+			num_children: 0,	// just created so the assumption is there are no children...
+			last: created
 		});
 	}
 	function getChildren(thread: number) {
@@ -77,6 +92,7 @@ export const useThreadsStore = defineStore('threads', () => {
 		threads.forEach(t => {
 			if( t.parent === thread ) ret.push(t);
 		});
+		ret.sort( (a,b) => b.last.getTime() - a.last.getTime() );
 		return ret;
 	}
 
@@ -89,6 +105,8 @@ export const useThreadsStore = defineStore('threads', () => {
 		return t;
 	}
 
+	// I don't like this lazy-loading business. Try to eliminate.
+	// actually maybe it's OK.
 	const lazy_load_threads :Set<number> = new Set;
 	function addLazyLoadThread(id:number) :Thread {
 		let existing = threads.get(id);
@@ -99,7 +117,8 @@ export const useThreadsStore = defineStore('threads', () => {
 			name: 'loading thread...',
 			created: new Date(),
 			parent: null,
-			num_children: 0
+			num_children: 0,
+			last: new Date()
 		});
 
 		lazy_load_threads.add(id);
@@ -142,13 +161,12 @@ export const useThreadsStore = defineStore('threads', () => {
 			const new_parent = getThread(parent_id);
 			if( new_parent ) new_parent.num_children++;
 			thread.parent = parent_id;
-			// an alternative to all this is to reload threads, if at all possible?
-			// like send up all threads we have visible and get all?
 		}
 	}
 
 	return {
-		loadThreads, getLatestSubThreads, loadChildren, getChildren,
+		loadThreads, getLatestSubThreads, loadChildren, reloadChildren,
+		getChildren,
 		addLazyLoadThread, fetchLazyLoadThreads,
 		addExternallyCreatedThread,
 		getThread, mustGetThread,

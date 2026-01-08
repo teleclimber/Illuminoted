@@ -1,6 +1,7 @@
 import {computed, ref, shallowRef, isReactive} from 'vue';
 import type {Ref, ComputedRef} from 'vue';
 import { defineStore } from 'pinia';
+import { useUIStateStore } from './ui_state';
 import { useThreadsStore } from './threads';
 
 export type RelationLabel = 'thread-out' | 'in-reply-to' | 'see-also';
@@ -241,13 +242,7 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 		if( !resp.note_id ) throw new Error("I expected to get a note_id "+resp);
 		const new_note_id = Number(resp.note_id);
 
-		if( new_thread_name ) {
-			if( !resp.thread_id ) throw new Error("I expected to get a thread_id "+resp);
-			// create thread with thread_id as parent
-			// then set thread_id to new.
-			threadsStore.addExternallyCreatedThread(resp.thread_id, thread_id, new_thread_name, created);
-			thread_id = resp.thread_id;
-		}
+		const note_thread_id = new_thread_name ? resp.thread_id : thread_id;
 
 		const new_note:Note = {
 			id: new_note_id,
@@ -262,6 +257,19 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 		const temp_notes = new Map(notes.value);
 		temp_notes.set(new_note_id, shallowRef(new_note));
 		notes.value = temp_notes;
+
+		if( new_thread_name ) {
+			if( !resp.thread_id ) throw new Error("I expected to get a thread_id "+resp);
+			threadsStore.addExternallyCreatedThread(resp.thread_id, thread_id, new_thread_name, created);
+			useUIStateStore().expandThread(thread_id);
+			threadsStore.reloadChildren(thread_id);
+			useUIStateStore().selectThread(note_thread_id);
+		}
+		else {
+			// reload the threads' parents children so the new note moves its thread to the bottom
+			const thread = threadsStore.getThread(thread_id);
+			if( thread && thread.parent ) threadsStore.reloadChildren(thread.parent);
+		}
 	}
 
 	async function updateNote(note_id:number, thread_id:number, contents:string, rel_deltas:EditRel[], modified:Date, new_thread_name?:string ) {
@@ -289,18 +297,22 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 
 		const resp = await rawResponse.json();
 
+		const note_thread_id = new_thread_name ? resp.thread_id : thread_id;
+
+		const note_ref = mustGetNote(note_id);
+		note_ref.value.contents = contents;
+		note_ref.value.thread = note_thread_id;
+		applyRelDeltas(note_ref.value, modified, rel_deltas);
+		note_ref.value = Object.assign({}, note_ref.value);
+
 		if( new_thread_name ) {
 			if( !resp.thread_id ) throw new Error("I expected to get a thread_id "+resp);
 			// create thread with thread_id as parent then set thread_id to new.
 			threadsStore.addExternallyCreatedThread(resp.thread_id, thread_id, new_thread_name, modified);
-			thread_id = resp.thread_id;
+			useUIStateStore().expandThread(thread_id);
+			threadsStore.reloadChildren(thread_id);
+			useUIStateStore().selectThread(note_thread_id);
 		}
-		
-		const note_ref = mustGetNote(note_id);
-		note_ref.value.contents = contents;
-		note_ref.value.thread = thread_id;
-		applyRelDeltas(note_ref.value, modified, rel_deltas);
-		note_ref.value = Object.assign({}, note_ref.value);
 	}
 
 	function applyRelDeltas(source_note:Note, created: Date, rel_deltas:EditRel[]) {

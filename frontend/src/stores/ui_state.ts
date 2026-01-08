@@ -146,6 +146,9 @@ export const useUIStateStore = defineStore('ui-state', () => {
 		if( expanded_threads.has(id) ) expanded_threads.delete(id);
 		else expanded_threads.add(id);
 	}
+	function expandThread(id:number) {
+		expanded_threads.add(id);
+	}
 	function batchExpandThreads(ids:number[]) {
 		ids.forEach( id => expanded_threads.add(id) );
 	}
@@ -268,7 +271,8 @@ export const useUIStateStore = defineStore('ui-state', () => {
 	return {
 		selected_threads, expanded_threads,
 		all_threads, setAllThreads,
-		threadClicked, selectThread, deselectThread, toggleExpandedThread, batchExpandThreads,
+		threadClicked, selectThread, deselectThread, 
+		toggleExpandedThread, expandThread, batchExpandThreads,
 		initDataFromURL, context_id,
 		show_threads, showThreads, hideThreads,
 		threads_pinnable, pin_threads, pinThreads, unPinThreads, threads_width,
