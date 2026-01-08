@@ -1,5 +1,6 @@
-import { reactive } from 'vue';
+import { reactive, computed } from 'vue';
 import { defineStore } from 'pinia';
+import { useUIStateStore } from './ui_state';
 
 export type Thread = {
 	id: number,
@@ -12,6 +13,19 @@ export type Thread = {
 
 export const useThreadsStore = defineStore('threads', () => {
 	const threads :Map<number,Thread> = reactive(new Map); 
+
+	const selected_ancestors = computed( () => {
+		const ret :Set<number> = new Set;
+		useUIStateStore().selected_threads.forEach( t => {
+			ret.add(t);
+			let thread = getThread(t);
+			while( thread && thread.parent ) {
+				ret.add(thread.parent);
+				thread = getThread(thread.parent);
+			}
+		});
+		return ret;
+	});
 
 	// load threads (used in page init when threads are specified in query params)
 	async function loadThreads(root:number, threads:Set<number>) {
@@ -50,6 +64,23 @@ export const useThreadsStore = defineStore('threads', () => {
 		// get number of children, if less than 10, use 10 to ensure it can grow if child is added.
 		const num = getChildren(root).length;
 		await loadChildren(root, num);
+	}
+
+	function showFewerChildren(root:number, num_remove:number ) {
+		let removed = 0;
+		const children = getChildren(root);
+		let i = children.length -1;
+		while( removed < num_remove && i >= 0 ) {
+			let child = children[i];
+			--i;
+			// check if it's selected or an ancestor of selected
+			if( !selected_ancestors.value.has(child.id) ) {
+				// also check if it's in relation...
+				// maybe thread got loaded because it's in note stack?
+				threads.delete(child.id);
+				++removed;
+			}
+		}
 	}
 
 	function ingestThread(raw:any) {
@@ -167,6 +198,7 @@ export const useThreadsStore = defineStore('threads', () => {
 	return {
 		loadThreads, getLatestSubThreads, loadChildren, reloadChildren,
 		getChildren,
+		showFewerChildren,
 		addLazyLoadThread, fetchLazyLoadThreads,
 		addExternallyCreatedThread,
 		getThread, mustGetThread,

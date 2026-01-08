@@ -28,6 +28,9 @@ const show_children = computed( () => {
 async function loadChildren() {
 	await threadsStore.loadChildren(props.thread.id, children.value.length + 10);
 }
+async function showFewerChildren() {
+	await threadsStore.showFewerChildren(props.thread.id, 10);
+}
 </script>
 
 <template>
@@ -48,6 +51,9 @@ async function loadChildren() {
 					</span>
 					<button v-if="children.length !== props.thread.num_children" class="ml-1 flex text-sm text-blue-500 underline" @click="loadChildren">
 						load more
+					</button>
+					<button v-if="children.length !== 0" class="ml-1 flex text-sm text-blue-500 underline" @click="showFewerChildren">
+						fewer
 					</button>
 				</div>
 			</div>
