@@ -144,13 +144,16 @@ export const useUIStateStore = defineStore('ui-state', () => {
 	const expanded_threads :Set<number> = reactive(new Set);	// set of thread_ids for which we show the children
 	function toggleExpandedThread(id:number) {
 		if( expanded_threads.has(id) ) expanded_threads.delete(id);
-		else expanded_threads.add(id);
+		else expandThread(id);
 	}
 	function expandThread(id:number) {
-		expanded_threads.add(id);
+		if( !expanded_threads.has(id) ) {
+			expanded_threads.add(id);
+			threadsStore.loadChildren(id, 6);
+		}
 	}
 	function batchExpandThreads(ids:number[]) {
-		ids.forEach( id => expanded_threads.add(id) );
+		ids.forEach( id => expandThread(id) );
 	}
 
 	const show_edit_thread :Ref<number|undefined> = ref();
