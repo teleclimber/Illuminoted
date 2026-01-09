@@ -158,7 +158,9 @@ export const useThreadsStore = defineStore('threads', () => {
 	}
 	async function fetchLazyLoadThreads(root: number) {
 		if( lazy_load_threads.size === 0 ) return;
-		loadThreads(root, lazy_load_threads);
+		loadThreads(root, lazy_load_threads).then( (threads) => {
+			threads.forEach( t => useUIStateStore().expandThreadAncestry(t) );
+		});
 		lazy_load_threads.clear();
 	}
 
