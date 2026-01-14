@@ -47,31 +47,33 @@ const contents = computed( () => {
 		if( start > cur_i ) {
 			ret.push({text:c.substring(cur_i, start)});
 		}
-		const href = c.substring(start, end)
-		ret.push({text:href, url:href, subs:[{text:href}]});
+		const url_with_marks = c.substring(start, end);
+		// Remove <mark> tags from href but keep them for display text
+		const href = url_with_marks.replace(/<\/?mark>/g, '');
+		ret.push({text:url_with_marks, url:href, subs:[{text:url_with_marks}]});
 		cur_i = end;
 	}
 	if( cur_i < c.length ) ret.push({text:c.substring(cur_i, c.length)});
 
 	const search = uiStateStore.debounced_search;
 	if(search) {
-		// find search term in non-url strings segments (for now)
-		//ret.forEach( (s, i) => {
+		// find <mark> and </mark> tags in non-url string segments
 		for( let i=ret.length-1; i>=0; --i ) {
 			const sub_ret = ret[i];
 			cur_i = 0;
 			const str = sub_ret.text;
 			const sub:TextNode[] = [];
-			const re = new RegExp(search, 'igd');
-			for( const match of str.matchAll(re) ) {
-				//@ts-ignore TS does not have indices yet: https://github.com/microsoft/TypeScript/issues/44227
-				const start = match.indices[0][0];
-				//@ts-ignore TS does not have indices yet: https://github.com/microsoft/TypeScript/issues/44227
-				const end = match.indices[0][1];
+			const mark_re = /<mark>(.*?)<\/mark>/g;
+			let match;
+			while((match = mark_re.exec(str)) !== null) {
+				const start = match.index;
+				const end = mark_re.lastIndex;
+				const highlighted_text = match[1];
+
 				if( start > cur_i ) {
 					sub.push({text:str.substring(cur_i, start)});
 				}
-				sub.push({text:str.substring(start, end), search_highlight: true});
+				sub.push({text:highlighted_text, search_highlight: true});
 				cur_i = end;
 			}
 			if( cur_i < str.length ) sub.push({text:str.substring(cur_i, str.length)});

@@ -139,14 +139,21 @@ export function getNotesByDate(params :{threads: number[]|undefined, from:Date, 
 		let cmp = params.backwards ? '<' : '>';
 		if( params.equal ) cmp += '=';
 		const args :{from:Date, limit:number, search?:string} = {from:params.from, limit:params.limit};
-		let notes_select = `SELECT notes.id, notes.thread, notes.created, notes_fts.contents FROM notes `
+
+		// Use highlight() function when there's a search query
+		const hasSearch = params.search && params.search.trim();
+		const contentsColumn = hasSearch
+			? `highlight(notes_fts, 0, '<mark>', '</mark>') AS contents`
+			: 'notes_fts.contents';
+
+		let notes_select = `SELECT notes.id, notes.thread, notes.created, ${contentsColumn} FROM notes `
 			+ 'JOIN notes_fts ON notes.id = notes_fts.rowid '
 			+ 'WHERE created ' +  cmp + ':from';
 		if( params.threads !== undefined ) {
 			notes_select += ` AND notes.thread IN (`+params.threads.join(",")+') ';
 		}
-		if( params.search && params.search.trim() ) {
-			const matchString = escapeSingleQuotes(params.search.trim());
+		if( hasSearch ) {
+			const matchString = escapeSingleQuotes(params.search!.trim());
 			notes_select += `\n AND notes_fts.contents MATCH '${matchString}' `;
 		}
 		notes_select += ' ORDER BY created ' + (params.backwards ?  'DESC' : 'ASC');
