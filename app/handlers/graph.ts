@@ -62,12 +62,11 @@ export async function getNotes(ctx:Context) {
 		if( note_id ) ret = await getNotesByNoteSplit({threads, note_id, limit, search});
 		else if( dir === "split" ) ret = await getNotesByDateSplit({threads, from:date, limit, search});
 		else ret = await getNotesByDate({threads, from: date, backwards: dir === "before", equal: true, limit, search});
+		ctx.respondJson(ret);
 	} catch(e) {
 		ctx.respondStatus(500, (e as Error).message);
-		throw e;
+		if( !search) throw e;	// only throw if no search because search itself can cause errors easily
 	}
-
-	ctx.respondJson(ret);
 }
 
 export async function getThreads(ctx:Context) {

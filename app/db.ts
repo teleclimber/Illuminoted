@@ -1,5 +1,6 @@
 import app from './app.ts';
 import { DB } from "https://deno.land/x/sqlite@v3.9.1/mod.ts";
+import { escapeSingleQuotes } from './helpers.ts';
 
 const dbFilename = "notes.db";
 let db :DB|undefined;
@@ -30,13 +31,18 @@ export const rel_labels :RelationLabel[] = ['thread-out', 'in-reply-to', 'see-al
 // or somehow support transactional querying across multipole functions
 export function createNote(note :{contents :string, thread :number, created :Date}) :number {
 	const db = getDB();
-	db.query('INSERT INTO notes ("contents", "thread", "created") VALUES (:contents, :thread, :created)', note);
-	return db.lastInsertRowId;
+	let id = 0;
+	db.transaction(() => {
+		db.query('INSERT INTO notes ("thread", "created") VALUES (:thread, :created)', {thread:note.thread, created:note.created});
+		id = db.lastInsertRowId;
+		db.query('INSERT INTO notes_fts(rowid, contents) VALUES (:id, :contents)', {id, contents: note.contents});
+	});
+	return id;
 }
 
 export function updateNoteContents(note_id:number, contents:string) {
 	const db = getDB();
-	db.query('UPDATE notes SET contents = :contents WHERE id = :note_id', {contents, note_id});
+	db.query('UPDATE notes_fts SET contents = :contents WHERE rowid = :note_id', {contents, note_id});
 }
 export function updateNoteThread(note_id:number, thread_id:number) {
 	const db = getDB();
@@ -133,15 +139,16 @@ export function getNotesByDate(params :{threads: number[]|undefined, from:Date, 
 		let cmp = params.backwards ? '<' : '>';
 		if( params.equal ) cmp += '=';
 		const args :{from:Date, limit:number, search?:string} = {from:params.from, limit:params.limit};
-		let notes_select = `SELECT notes.id, notes.thread, notes.created, notes.contents FROM notes `
+		let notes_select = `SELECT notes.id, notes.thread, notes.created, notes_fts.contents FROM notes `
+			+ 'JOIN notes_fts ON notes.id = notes_fts.rowid '
 			+ 'WHERE created ' +  cmp + ':from';
 		if( params.threads !== undefined ) {
 			notes_select += ` AND notes.thread IN (`+params.threads.join(",")+') ';
 		}
-		if( params.search ) {
-			args.search = '%'+params.search+'%'
-			notes_select += ' AND notes.contents LIKE :search '
-		}		
+		if( params.search && params.search.trim() ) {
+			const matchString = escapeSingleQuotes(params.search.trim());
+			notes_select += `\n AND notes_fts.contents MATCH '${matchString}' `;
+		}
 		notes_select += ' ORDER BY created ' + (params.backwards ?  'DESC' : 'ASC');
 		notes_select += ' LIMIT :limit';
 		console.log(notes_select);
@@ -163,7 +170,7 @@ export function getNoteById(id:number) :{note:DBNote, relations: DBRelation[]} {
 	let note :DBNote|undefined;
 	let relations :DBRelation[] = [];
 	db.transaction( () => {
-		const notes = db.queryEntries<DBNote>('SELECT id, thread, contents, created FROM notes WHERE id = :id', {id});
+		const notes = db.queryEntries<DBNote>('SELECT notes.id, notes.thread, notes_fts.contents, notes.created FROM notes JOIN notes_fts ON notes.id = notes_fts.rowid WHERE notes.id = :id', {id});
 		if( notes.length === 0 ) throw new Error("note id not found: "+id);
 		note = notes[0];
 		relations = db.queryEntries<DBRelation>('SELECT * FROM relations WHERE source = :id OR target = :id', {id});

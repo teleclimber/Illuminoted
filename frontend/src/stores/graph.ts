@@ -64,6 +64,7 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 
 	let threads :Set<number>|"all" = new Set;
 	let search = '';
+	const last_search_error = ref(false);
 
 	const notes :Ref<Map<number,Ref<Note>>> = shallowRef(new Map);
 
@@ -143,8 +144,19 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 			params.set('note_id', q.note_id + '');
 		}
 
+		const this_search = search;
+
 		const resp = await fetch('/api/notes/?' + params);
-		if( !resp.ok ) throw new Error("fetch not OK");
+		if( !resp.ok ) {
+			if( this_search && this_search === search ) {	// search hasn't changed while wiating for response
+				last_search_error.value = true;
+				loading.value = false;
+				return;
+			}
+			else if( !this_search) {
+				throw new Error("fetch not OK");	// no search but got 500: throw. This breaks the frontend.
+			}
+		}
 		const data = <{relations: any[], notes: any[]}>await resp.json();
 		if( !Array.isArray(data.relations) ) throw new Error("expected an array of relations");
 		const relations = data.relations.map( (r:any) => relationFromRaw(r) );
@@ -172,6 +184,7 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 			if( note ) addRelation(note, r);
 		});
 
+		last_search_error.value = false;
 		notes.value = temp_notes;
 		loading.value = false;
 	}
@@ -350,7 +363,8 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 		updateNote, createNote,
 		loading,
 		loadLatestNotes, loadNotesAroundDate, loadNotesAroundNote,
-		getMoreNotesBefore, getMoreNotesAfter
+		getMoreNotesBefore, getMoreNotesAfter,
+		last_search_error
 	}
 });
 

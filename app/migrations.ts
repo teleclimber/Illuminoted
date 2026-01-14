@@ -91,16 +91,29 @@ export default function createMigrations() {
 
 	});
 	// Make a down-migration:
-	// - continue to use thread out? or some other relation like note-from-parent-thread -> thread 
-	// Then you can rebuild the thread-out relations 
+	// - continue to use thread out? or some other relation like note-from-parent-thread -> thread
+	// Then you can rebuild the thread-out relations
 	// m.downFrom(2, async () => {
-	// 	// TODO 
+	// 	// TODO
 	// 	// For every thread-out relation
 	// 	// - the load the note at rel's target, and read its thread
 	// 	// - in obj of v2_thread -> v1_thread, v2_thread is thread id from threads table, v1 is the trget note.
 	// 	// After that, find any note for which you don't have a thread and reconstitute.
 	// 	// Use the first note in the thread, and nearest previous note in parent thread to generate a thread-out relation.
 	// });
+
+	m.upTo(3, async () => {
+		const db = getDB();
+
+		// Create FTS5 virtual table
+		db.query(`CREATE VIRTUAL TABLE notes_fts USING fts5(contents)`);
+
+		// Migrate existing content
+		db.query(`INSERT INTO notes_fts(rowid, contents) SELECT id, contents FROM notes`);
+
+		// Remove contents column from notes table
+		db.query(`ALTER TABLE notes DROP COLUMN contents`);
+	});
 
 	return m.migrations;
 }

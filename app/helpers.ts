@@ -5,3 +5,11 @@ export function dateStr(d:Date) {
 		return f.format(d);
 	}).join('-');
 }
+
+/**
+ * Escape single quotes for SQL injection prevention
+ * Replaces ' with '' (SQL standard escaping)
+ */
+export function escapeSingleQuotes(input: string): string {
+  return input.replace(/'/g, "''");
+}
