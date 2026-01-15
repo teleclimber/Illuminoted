@@ -5,6 +5,7 @@ import { useNoteEditorStore } from './stores/note_editor';
 
 import NoteStack from './components/NoteStack.vue';
 import ThreadStack from './components/ThreadStack.vue';
+import AddNoteControl from './components/AddNoteControl.vue';
 import NoteControls from './components/NoteControls.vue';
 import NoteEditor from './components/NoteEditor.vue';
 import ThreadEditor from './components/ThreadEditor.vue';
@@ -47,17 +48,6 @@ const notes_left = computed( () => {
 </script>
 
 <template>
-	<!-- <header v-if="!show_threads && context_thread" class="sticky h-10 justify-between flex items-center top-0 z-50 bg-gray-100">
-		<button class="px-2 h-8 overflow-y-hidden hover:bg-gray-50" @click="uiStateStore.showThreads()">{{context_thread.name}}</button>
-		<SearchBox v-if="uiStateStore.show_search" class="mr-4"></SearchBox>
-		<button v-else @click="uiStateStore.showSearch()" class="px-6 py-2 hover:bg-gray-50">
-			<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-				<path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-			</svg>
-		</button>
-		
-	</header> -->
-		
 		<ThreadStack></ThreadStack>
 
 		<div v-if="!uiStateStore.show_search" class="absolute top-2 z-20 right-2">
@@ -76,6 +66,7 @@ const notes_left = computed( () => {
 			<NoteStack ></NoteStack>
 
 			<div class="z-20">
+				<AddNoteControl></AddNoteControl>
 				<NoteControls></NoteControls>
 				<NoteEditor v-if="noteEditorStore.show"></NoteEditor>
 				<ThreadEditor v-if="uiStateStore.show_edit_thread"></ThreadEditor>

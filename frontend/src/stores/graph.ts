@@ -68,6 +68,8 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 
 	const notes :Ref<Map<number,Ref<Note>>> = shallowRef(new Map);
 
+	let last_new_note_thread :number|undefined = undefined;
+
 	function setContext(id:number) {
 		context_id.value = id;
 		earliest = undefined;
@@ -256,10 +258,11 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 		const new_note_id = Number(resp.note_id);
 
 		const note_thread_id = new_thread_name ? resp.thread_id : thread_id;
+		last_new_note_thread = note_thread_id;
 
 		const new_note:Note = {
 			id: new_note_id,
-			thread: thread_id,
+			thread: note_thread_id,
 			contents,
 			created,
 			relations: []
@@ -283,6 +286,9 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 			const thread = threadsStore.getThread(thread_id);
 			if( thread && thread.parent ) threadsStore.reloadChildren(thread.parent);
 		}
+	}
+	function getLastNewNoteThreadID() {
+		return last_new_note_thread;
 	}
 
 	async function updateNote(note_id:number, thread_id:number, contents:string, rel_deltas:EditRel[], modified:Date, new_thread_name?:string ) {
@@ -364,7 +370,8 @@ export const useNotesGraphStore = defineStore('notes-graph', () => {
 		loading,
 		loadLatestNotes, loadNotesAroundDate, loadNotesAroundNote,
 		getMoreNotesBefore, getMoreNotesAfter,
-		last_search_error
+		last_search_error,
+		getLastNewNoteThreadID
 	}
 });
 

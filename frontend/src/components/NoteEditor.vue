@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, reactive } from '@vue/reactivity';
+import { computed } from '@vue/reactivity';
 import {nextTick, onMounted, ref, Ref, watch } from 'vue';
 import { useUIStateStore } from '../stores/ui_state';
 import { useNotesGraphStore } from '../stores/graph';
 import { useNoteEditorStore } from '../stores/note_editor';
 import { Thread, useThreadsStore } from '../stores/threads';
-import { useNoteStackStore } from '../stores/note_stack';
 
 import type { EditRel } from '../stores/graph';
 
@@ -19,9 +18,25 @@ const noteEditorStore = useNoteEditorStore();
 
 const text_input_elem :Ref<HTMLInputElement|undefined> = ref();
 const new_thread_name_input :Ref<HTMLInputElement|undefined> = ref();
-watch( [text_input_elem, new_thread_name_input], () => {
-	if( new_thread_name_input.value ) new_thread_name_input.value.focus();
-	else if( text_input_elem.value ) text_input_elem.value.focus();
+
+// Focus the appropriate input when the view changes
+watch(() => noteEditorStore.create_new_thread, (isCreatingNewThread) => {
+	nextTick(() => {
+		if (isCreatingNewThread) {
+			new_thread_name_input.value?.focus();
+		} else {
+			text_input_elem.value?.focus();
+		}
+	});
+});
+
+// Focus textarea when component mounts
+onMounted(() => {
+	nextTick(() => {
+		if (!noteEditorStore.create_new_thread) {
+			text_input_elem.value?.focus();
+		}
+	});
 });
 
 const rels = computed( () => {

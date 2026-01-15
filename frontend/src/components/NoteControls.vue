@@ -3,7 +3,6 @@ import {ref, computed, ComputedRef, Ref } from 'vue';
 import { useNotesGraphStore } from '../stores/graph';
 import { useNoteEditorStore } from '../stores/note_editor';
 import { useUIStateStore } from '../stores/ui_state';
-import { useNoteStackStore } from '../stores/note_stack';
 
 import type {Note} from '../stores/graph';
 import LazyNoteHint from './LazyNoteHint.vue';
@@ -14,7 +13,6 @@ const notesStore = useNotesGraphStore();
 const threadsStore = useThreadsStore();
 const noteEditorStore = useNoteEditorStore();
 const uiStateStore = useUIStateStore();
-const noteStackStore = useNoteStackStore();
 
 const note = computed( () => {
 	if( !uiStateStore.selected_note_id ) return undefined;
