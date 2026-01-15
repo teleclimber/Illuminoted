@@ -4,7 +4,7 @@ import { useNotesGraphStore } from '../stores/graph';
 import { useNoteEditorStore } from '../stores/note_editor';
 import { useUIStateStore } from '../stores/ui_state';
 
-import type {Note} from '../stores/graph';
+import type {Note, RelationLabel} from '../stores/graph';
 import LazyNoteHint from './LazyNoteHint.vue';
 import RelationIcon from './RelationIcon.vue';
 import { useThreadsStore } from '../stores/threads';
@@ -112,9 +112,9 @@ function appendToThread() {
 	uiStateStore.deselectNote();
 }
 
-function threadOut() {
+function newNoteWithRel(rel:RelationLabel) {
 	if( !note.value ) return;
-	noteEditorStore.threadOut(note.value.id);
+	noteEditorStore.newNoteWithRelation(note.value.id, rel);
 	uiStateStore.deselectNote();
 }
 
@@ -161,11 +161,22 @@ const expand_thread = ref(false);
 			<LazyNoteHint :note="r.note" class="flex-shrink"></LazyNoteHint>
 		</div>
 		
-		<div class="grid grid-cols-4 gap-1 h-8">
+		<div class="grid grid-cols-6 gap-1 h-8">
 			<button v-if="true" @click.stop.prevent="appendToThread()" class="flex justify-center items-center rounded bg-slate-300">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 rotate-90 " viewBox="0 0 24 24"> <g> <path fill="none" d="M0 0h24v24H0z"/> <path d="M15.874 13a4.002 4.002 0 0 1-7.748 0H3v-2h5.126a4.002 4.002 0 0 1 7.748 0H21v2h-5.126zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/> </g> </svg> 
 			</button>
-			<button @click.stop.prevent="threadOut()" class="flex justify-center items-center rounded bg-slate-300 ">
+			<button @click.stop.prevent="newNoteWithRel('see-also')" class="flex justify-center items-center rounded bg-slate-300 ">
+				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+					<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+				</svg>
+			</button>
+			<button @click.stop.prevent="newNoteWithRel('in-reply-to')" class="flex justify-center items-center rounded bg-slate-300 ">
+				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 rotate-180">
+					<path stroke-linecap="round" stroke-linejoin="round" d="m15 15 6-6m0 0-6-6m6 6H9a6 6 0 0 0 0 12h3" />
+				</svg>
+			</button>
+			<button @click.stop.prevent="newNoteWithRel('thread-out')" class="flex justify-center items-center rounded bg-slate-300 ">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 0 0 9 9"></path></svg> 
 			</button>
 			<button @click.stop.prevent="editThread()" class="flex justify-center items-center rounded bg-slate-300">

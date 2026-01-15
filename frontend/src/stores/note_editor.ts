@@ -2,7 +2,7 @@ import { reactive, ref, computed, toRaw } from 'vue';
 import type {Ref} from 'vue';
 import { defineStore } from 'pinia';
 
-import { useNotesGraphStore } from './graph';
+import { RelationLabel, useNotesGraphStore } from './graph';
 import {EditRel, typedLabel} from './graph';
 
 export const useNoteEditorStore = defineStore('note-editor', () => {
@@ -34,7 +34,7 @@ export const useNoteEditorStore = defineStore('note-editor', () => {
 		created_time.value = new Date().getTime();
 		show.value = true;
 	}
-	function threadOut(from_note_id:number) {
+	function newNoteWithRelation(from_note_id:number, rel:RelationLabel) {
 		if( show.value ) return;
 		reset();
 		// get note, then parent thread is note thread.
@@ -43,7 +43,7 @@ export const useNoteEditorStore = defineStore('note-editor', () => {
 		thread_id.value = parent_note.value.thread;
 		rel_edit.push({
 			note_id: from_note_id,
-			label: 'thread-out',
+			label: rel,
 			action: 'add'
 		});
 		created_time.value = new Date().getTime();
@@ -156,7 +156,7 @@ export const useNoteEditorStore = defineStore('note-editor', () => {
 		created_time,
 		thread_id, contents, 
 		appendToThread,
-		threadOut,
+		newNoteWithRelation,
 		editNote, editRelation,
 		ok_to_save, saveNote,
 		reset,
