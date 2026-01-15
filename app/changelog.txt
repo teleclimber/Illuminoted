@@ -1,3 +1,15 @@
+0.5.0
+
+Many improvements for 0.5.0:
+
+- Search notes using sqlite's full text search capabilities (AND, OR NOT, NEAR(), etc...)
+- The time bar looks better and includes the most recent month and a way to jump to the most recent notes
+- Clicking on a related note now loads that note correctly instead of just scrolling up
+- Implement back navigation after clicking on a related note
+- Add note if no note is selected, and add note with a relation
+- Show fewer threads, and other improvements to threads
+- Long links do not break layout
+
 0.4.2
 
 Make Illuminoted work with Deno 2.
